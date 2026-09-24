@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/edguidance/db" VERSION="20260925" COMMENT="XMLDB file for Moodle local_edguidance"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_edguidance" COMMENT="One block of teacher guidance, embedded in rich text by an opaque token. The text lives here rather than in the host HTML so that nothing reaches students by a path that skips the filter - search indexing, raw web service text, or a teacher switching the filter off.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The course. Also how a draft is found when its activity is saved."/>
+        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course module whose text carries the token. 0 for a draft, made while the activity was still being added and had no id."/>
+        <FIELD NAME="embedkey" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="Random hex matching the token's data-edguidance attribute. Never remapped: the host text carries it through backup and restore unchanged."/>
+        <FIELD NAME="introorder" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 if the token is not in the activity description (a chapter or page block). n if it is the nth token there. Recorded when the activity is saved, so the course page can find description guidance without reading every module's intro."/>
+        <FIELD NAME="presetslot" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 for guidance with its own text. 1..10 for guidance that uses that site preset, which is read live on every render. Not remapped by restore: it names a site setting, not something in the course."/>
+        <FIELD NAME="guidance" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The block's own text. For a block using a preset, a snapshot taken when it was linked, shown only if the preset slot is later emptied."/>
+        <FIELD NAME="guidanceformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="courseid" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="cmid-embedkey" UNIQUE="true" FIELDS="cmid, embedkey"/>
+        <INDEX NAME="courseid-cmid" UNIQUE="false" FIELDS="courseid, cmid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

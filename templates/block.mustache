@@ -1,0 +1,60 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_edguidance/block
+
+    One teacher guidance block, wherever it is shown: an activity card, a book chapter or a lesson
+    page.
+
+    Both states are rendered - the guidance, and the help icon it collapses to once dismissed - and
+    the server decides which one starts hidden. local_edguidance/guidance only toggles between them.
+
+    This must never contain the data-edguidance attribute. That is the token filter_edguidance looks
+    for, and mod_lesson runs some text through the filters twice.
+
+    Context variables required for this template:
+    * id int - local_edguidance.id
+    * body string - already formatted HTML, rendered unescaped
+    * missing bool - the preset it used has gone, so the body is a possibly stale copy
+    * dismissed bool - the current user has dismissed it
+
+    Example context (json):
+    {
+        "id": 42,
+        "body": "<p>Set the due date before releasing this to students.</p>",
+        "missing": false,
+        "dismissed": false
+    }
+}}
+<div class="edguidance{{#dismissed}} edguidance-is-dismissed{{/dismissed}}" data-region="edguidance" data-guidanceid="{{id}}">
+    <div class="edguidance-card" data-region="edguidance-full"{{#dismissed}} hidden{{/dismissed}}>
+        <div class="edguidance-header">
+            <span class="edguidance-title">{{#str}} guidance, local_edguidance {{/str}}</span>
+            <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
+            <button type="button" class="btn btn-link btn-sm edguidance-dismiss" data-action="edguidance-dismiss"
+                aria-label="{{#str}} dismissguidance, local_edguidance {{/str}}">{{#str}} dismiss, local_edguidance {{/str}}</button>
+        </div>
+        {{#missing}}
+            <div class="alert alert-info edguidance-missing" role="alert">{{#str}} guidancemissing, local_edguidance {{/str}}</div>
+        {{/missing}}
+        <div class="edguidance-body">{{{body}}}</div>
+    </div>
+    <button type="button" class="btn btn-link p-0 icon-no-margin edguidance-restore" data-region="edguidance-collapsed"
+        data-action="edguidance-restore" aria-label="{{#str}} review, local_edguidance {{/str}}"{{^dismissed}} hidden{{/dismissed}}>
+        {{#pix}} help, core {{/pix}}
+    </button>
+</div>

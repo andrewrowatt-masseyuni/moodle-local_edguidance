@@ -1,0 +1,151 @@
+/*
+ * Teacher guidance styling.
+ *
+ * Everything hangs off the markup this plugin emits (templates/block.mustache), never off the host
+ * activity's own wrappers, because the block turns up inside three very different hosts: a course
+ * page card (Boost or Snap), a book chapter and a lesson page.
+ */
+
+/*
+ * A token the filter did not replace - filter_edguidance switched off in this course, say. It
+ * carries no guidance text, so there is nothing to protect, but TinyMCE pads an empty div with
+ * &nbsp; and that would otherwise leave a blank line.
+ */
+div.edguidance-embed[data-edguidance] {
+    display: none;
+}
+
+/*
+ * "Quiet strip" treatment, as mod_ednote had: no fill of its own beyond a faint tint, and a teal rule
+ * down its left edge, so it reads as a low-weight teacher aside rather than competing with the
+ * content around it.
+ */
+.edguidance {
+    margin: 0.5rem 0;
+    text-align: left;
+}
+
+.edguidance-card {
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+    border-left: 3px solid #2f8a9b;
+    color: #40626a;
+    font-weight: 400;
+    background-color: #2f8a9b0f;
+}
+
+.edguidance-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.edguidance-title {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    color: #12545f;
+}
+
+.edguidance-title::before {
+    content: '\f0eb';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.85rem;
+    letter-spacing: normal;
+    color: #2f8a9b;
+}
+
+/* "Only teachers see this" - reassures the teacher the aside is not on the student view. */
+.edguidance-scope {
+    font-size: 0.75rem;
+    color: #8ba1a7;
+}
+
+.edguidance .edguidance-dismiss {
+    margin-left: auto;
+    padding: 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #0f7b8f;
+}
+
+.edguidance-body {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: #40626a;
+    font-weight: 300;
+}
+
+.edguidance-body > :last-child {
+    margin-bottom: 0;
+}
+
+.edguidance .edguidance-missing {
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Collapsed: just the help icon, in the guidance teal. */
+.edguidance.edguidance-is-dismissed {
+    margin: 0.25rem 0;
+    line-height: 1;
+}
+
+.edguidance .edguidance-restore {
+    color: #2f8a9b;
+    line-height: 1;
+}
+
+.edguidance .edguidance-restore .icon {
+    margin: 0;
+}
+
+/* The preview of a preset in the embed form, dressed as the block it will become. */
+.edguidance-preview {
+    padding: 0.375rem 0.75rem;
+    border-left: 3px solid #2f8a9b;
+    background-color: #2f8a9b0f;
+}
+
+/*
+ * Boost: description guidance placed in the card's afterlink row (classes/local/card_injector.php).
+ * Core lays that row out as a centred flex line for a file size or a badge; guidance needs the full
+ * width. Once only the collapsed icon is left, the row's rule and spacing are dropped so the icon
+ * does not sit alone under a divider.
+ */
+.activity-item .activity-afterlink:has(> .edguidance) {
+    flex-wrap: wrap;
+}
+
+.activity-item .activity-afterlink > .edguidance {
+    flex: 1 1 100%;
+}
+
+.activity-item .activity-afterlink:has(> .edguidance.edguidance-is-dismissed:only-child) {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+
+/*
+ * Boost: a description that was nothing but guidance. filter_edguidance returns '' for a student,
+ * but get_formatted_content() still wraps that in an empty .no-overflow div, which would leave an
+ * empty description box on the card.
+ */
+.activity-item .activity-altcontent:has(> .no-overflow:empty:only-child) {
+    display: none;
+}
+
+/*
+ * Snap: the same placement lands in the card's meta row, which Snap squeezes to line-height .6em for
+ * its draft and stealth tags. Guidance needs normal text spacing back.
+ */
+.snap-asset-meta .edguidance {
+    line-height: normal;
+}
