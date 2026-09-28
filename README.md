@@ -79,7 +79,9 @@ use the **Teacher guidance** button on the editor toolbar (also under **Insert**
 The guidance appears in the editor as it will on the page, with *Click to edit* where the page has
 *Dismiss*. Click it (or choose **Edit this guidance** with the cursor on it) to change it, to switch
 it to a different preset, or to turn a linked preset into an editable copy by choosing *My own
-text*. Delete it as you would any other block of text to remove the guidance.
+text*. Delete it as you would any other block of text to remove the guidance. To move it, hover
+over it and use the up and down arrows at its bottom right, which move it past one paragraph (or
+other block) at a time.
 
 ### Where it shows
 
@@ -299,7 +301,11 @@ with nothing to say previews as a notice rather than as nothing, so there is sti
 click.
 
 Nothing inside the preview is interactive (`pointer-events: none`): a click lands on the token and
-opens the form, and a link or video in the guidance does nothing inside the editor. Filter output
+opens the form, and a link or video in the guidance does nothing inside the editor. The one
+exception is the up and down buttons (`amd/src/move.js`), which are in the same shadow root, so
+they are never saved either. Their clicks are stopped inside the shadow root, before the token's
+own click handler would open the form. A move swaps the token with its neighbouring element,
+stepping over TinyMCE's `data-mce-bogus` scaffolding, in one undo step. Filter output
 that needs JavaScript, such as MathJax or a media player, does not start in the preview.
 
 ### Dismissing
@@ -380,8 +386,8 @@ php admin/tool/behat/cli/run.php --tags=@local_edguidance
 Behat covers card guidance with the description shown and hidden, in Boost and in Snap; dismiss and
 restore; per-teacher dismissal; a preset updating live; book chapters and lesson pages; section
 summaries, in Boost and in Snap; adding guidance with the editor button, in a chapter and a section
-summary; and the editor's preview, as it is added and edited, with a check each time that the
-guidance is not in the text the editor would save.
+summary; the editor's preview, as it is added and edited, with a check each time that the
+guidance is not in the text the editor would save; and moving guidance up and down in the editor.
 
 Three things to know when adding Behat coverage:
 
@@ -389,9 +395,9 @@ Three things to know when adding Behat coverage:
   quietly picks another editor and there is no button. Give chapters `contentformat` 1.
 * The `Insert > ...` menu step cannot reach a third menu level. Click the toolbar button and pick
   menu items by `[role^='menuitem'][aria-label='...']` instead, as `editor.feature` does.
-* The editor's preview is in a shadow root, which XPath cannot see into. Use `tiny_edguidance`'s
-  steps: *the "Content" TinyMCE editor should preview guidance "..."*, and *... should not save
-  "..."*.
+* The editor's preview and its move buttons are in a shadow root, which XPath cannot see into.
+  Use `tiny_edguidance`'s steps: *the "Content" TinyMCE editor should preview guidance "..."*,
+  *... should not save "..."* and *I move teacher guidance "up" in the "Content" TinyMCE editor*.
 
 Static caches (`guidance`, `dismissed`, `card_injector`) are keyed on ids PHPUnit reuses between
 tests; reset them in `setUp()`.

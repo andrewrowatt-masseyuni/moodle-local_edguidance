@@ -81,3 +81,23 @@ Feature: Adding teacher guidance from the editor
     And I press "Save changes"
     And I should see "Groups of three for this chapter."
     And I should not see "Form groups before starting."
+
+  @javascript
+  Scenario: Guidance can be moved up and down past the text around it
+    Given I am on the "Course book" "book activity" page logged in as teacher1
+    And I turn editing mode on
+    And I follow "Edit chapter \"1. Chapter 1\""
+    And I expand all toolbars for the "Content" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And I click on "[role^='menuitem'][aria-label='Use a preset']" "css_element"
+    And I click on "[role^='menuitem'][aria-label='Group work']" "css_element"
+    And I press "Save changes"
+    And "Form groups before starting." "text" should appear before "Chapter text." "text"
+    When I follow "Edit chapter \"1. Chapter 1\""
+    And I move teacher guidance "down" in the "Content" TinyMCE editor
+    And I press "Save changes"
+    Then "Chapter text." "text" should appear before "Form groups before starting." "text"
+    And I follow "Edit chapter \"1. Chapter 1\""
+    And I move teacher guidance "up" in the "Content" TinyMCE editor
+    And I press "Save changes"
+    And "Form groups before starting." "text" should appear before "Chapter text." "text"
