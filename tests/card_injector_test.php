@@ -187,6 +187,24 @@ final class card_injector_test extends \advanced_testcase {
 
         $afterlink = (string)get_fast_modinfo((int)$course->id)->get_cm($cmid)->afterlink;
         $this->assertSame(1, substr_count($afterlink, 'data-guidanceid="' . $row->id . '"'));
+        // Nor an empty wrapper the second time.
+        $this->assertSame(1, substr_count($afterlink, 'no-overflow'));
+    }
+
+    /**
+     * The guidance is wrapped as a description shown in the card would be.
+     */
+    public function test_guidance_is_wrapped_as_a_description(): void {
+        $this->resetAfterTest();
+        [$course, $cmid, $row] = $this->make_course();
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        card_injector::prime((int)$course->id);
+
+        $this->assertMatchesRegularExpression(
+            '~<div class="no-overflow">\s*<div class="edguidance[^"]*" data-region="edguidance" data-guidanceid="' . $row->id . '"~',
+            (string)get_fast_modinfo((int)$course->id)->get_cm($cmid)->afterlink
+        );
     }
 
     /**

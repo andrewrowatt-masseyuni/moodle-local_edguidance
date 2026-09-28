@@ -16,7 +16,9 @@
 
 namespace local_edguidance;
 
+use core_external\external_api;
 use local_edguidance\external\embed_preset;
+use local_edguidance\external\get_previews;
 use local_edguidance\external\set_dismissed;
 
 /**
@@ -27,6 +29,8 @@ use local_edguidance\external\set_dismissed;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \local_edguidance\external\set_dismissed
  * @covers     \local_edguidance\external\embed_preset
+ * @covers     \local_edguidance\external\get_previews
+ * @covers     \local_edguidance\output\block
  */
 final class external_test extends \advanced_testcase {
     /**
@@ -197,5 +201,151 @@ final class external_test extends \advanced_testcase {
             1,
             (int)get_fast_modinfo($other)->get_section_info(1)->id
         );
+    }
+
+    /**
+     * Previews for every key asked, once each, in order: own text and a preset in full, with no
+     * buttons, and a key with no block here as the notice the filter shows.
+     */
+    public function test_get_previews(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_edguidance');
+        $generator->set_preset(1, 'Dates', '<p>Check the dates.</p>');
+        [$course, $book, $own] = $this->make_block();
+        $preset = $generator->create_block(['cmid' => $book->cmid, 'presetslot' => 1, 'guidance' => '<p>Old copy.</p>']);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $unknown = token::new_key();
+        $previews = get_previews::execute(
+            \context_module::instance($book->cmid)->id,
+            [$own->embedkey, $preset->embedkey, $unknown, $own->embedkey]
+        );
+        $previews = external_api::clean_returnvalue(get_previews::execute_returns(), $previews);
+
+        $this->assertSame([$own->embedkey, $preset->embedkey, $unknown], array_column($previews, 'key'));
+
+        $this->assertStringContainsString('Check the due date before releasing this.', $previews[0]['html']);
+        $this->assertStringContainsString('edguidance-card', $previews[0]['html']);
+        $this->assertStringNotContainsString('edguidance-dismiss', $previews[0]['html']);
+        $this->assertStringNotContainsString('edguidance-restore', $previews[0]['html']);
+
+        // The preset as it stands, not the snapshot.
+        $this->assertStringContainsString('Check the dates.', $previews[1]['html']);
+        $this->assertStringNotContainsString('Old copy.', $previews[1]['html']);
+
+        $this->assertStringContainsString(get_string('previewnotfound', 'local_edguidance'), $previews[2]['html']);
+    }
+
+    /**
+     * A block the teacher has dismissed is previewed in full: they are editing it.
+     */
+    public function test_get_previews_ignores_dismissal(): void {
+        $this->resetAfterTest();
+        [$course, $book, $row] = $this->make_block();
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        dismissed::set((int)$row->id, true);
+
+        $html = get_previews::execute(\context_module::instance($book->cmid)->id, [$row->embedkey])[0]['html'];
+
+        $this->assertStringNotContainsString('edguidance-is-dismissed', $html);
+        $this->assertStringNotContainsString('hidden', $html);
+        $this->assertStringContainsString('Check the due date before releasing this.', $html);
+    }
+
+    /**
+     * A block is found only in the editor it belongs to, as the guidance form finds it.
+     */
+    public function test_get_previews_are_scoped_to_the_editor(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_edguidance');
+        [$course, $book, $row] = $this->make_block();
+        $other = $this->getDataGenerator()->create_module('book', ['course' => $course->id]);
+        $modinfo = get_fast_modinfo($course->id);
+        $section1 = (int)$modinfo->get_section_info(1)->id;
+        $section2 = (int)$modinfo->get_section_info(2)->id;
+        $sectionrow = $generator->create_block(['sectionid' => $section1]);
+        $draft = $generator->create_block(['courseid' => $course->id]);
+        $coursecontext = \context_course::instance($course->id)->id;
+        $notfound = get_string('previewnotfound', 'local_edguidance');
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $preview = fn(int $contextid, \stdClass $block, int $sectionid = 0): string =>
+            get_previews::execute($contextid, [$block->embedkey], $sectionid)[0]['html'];
+
+        $this->assertStringNotContainsString($notfound, $preview(\context_module::instance($book->cmid)->id, $row));
+        $this->assertStringContainsString($notfound, $preview(\context_module::instance($other->cmid)->id, $row));
+
+        $this->assertStringNotContainsString($notfound, $preview($coursecontext, $sectionrow, $section1));
+        $this->assertStringContainsString($notfound, $preview($coursecontext, $sectionrow, $section2));
+
+        // The "add an activity" form: its drafts, and nothing of any section's.
+        $this->assertStringNotContainsString($notfound, $preview($coursecontext, $draft));
+        $this->assertStringContainsString($notfound, $preview($coursecontext, $sectionrow));
+    }
+
+    /**
+     * A section in a course the teacher is not editing is refused.
+     */
+    public function test_get_previews_refuses_a_section_elsewhere(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $other = $this->getDataGenerator()->create_course();
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $this->expectException(\invalid_parameter_exception::class);
+        get_previews::execute(
+            \context_course::instance($course->id)->id,
+            [token::new_key()],
+            (int)get_fast_modinfo($other)->get_section_info(1)->id
+        );
+    }
+
+    /**
+     * A token inside guidance is stripped, not previewed: the page never shows guidance in guidance.
+     */
+    public function test_get_previews_never_contain_a_token(): void {
+        $this->resetAfterTest();
+        [$course, $book, $inner] = $this->make_block();
+        $outer = $this->getDataGenerator()->get_plugin_generator('local_edguidance')->create_block([
+            'cmid' => $book->cmid,
+            'guidance' => '<p>Outer.</p>' . token::html($inner->embedkey),
+        ]);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $html = get_previews::execute(\context_module::instance($book->cmid)->id, [$outer->embedkey])[0]['html'];
+
+        $this->assertStringContainsString('Outer.', $html);
+        $this->assertStringNotContainsString(token::ATTRIBUTE, $html);
+        $this->assertStringNotContainsString('Check the due date before releasing this.', $html);
+    }
+
+    /**
+     * A block with nothing to say still previews, so there is something to click.
+     */
+    public function test_get_previews_of_an_empty_block(): void {
+        $this->resetAfterTest();
+        [$course, $book] = $this->make_block();
+        $empty = $this->getDataGenerator()->get_plugin_generator('local_edguidance')->create_block([
+            'cmid' => $book->cmid,
+            'guidance' => '<p></p>',
+        ]);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $html = get_previews::execute(\context_module::instance($book->cmid)->id, [$empty->embedkey])[0]['html'];
+
+        $this->assertStringContainsString(get_string('previewempty', 'local_edguidance'), $html);
+    }
+
+    /**
+     * Only people who may write guidance are shown the preview: a non-editing teacher has no
+     * editor to preview in, and a student none at all.
+     */
+    public function test_get_previews_needs_manage(): void {
+        $this->resetAfterTest();
+        [$course, $book, $row] = $this->make_block();
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'teacher'));
+
+        $this->expectException(\required_capability_exception::class);
+        get_previews::execute(\context_module::instance($book->cmid)->id, [$row->embedkey]);
     }
 }

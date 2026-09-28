@@ -59,6 +59,9 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
 * **Guidance text must never go into host text.** Only the token does. Anything that writes guidance
   HTML into a description, chapter or page reopens the leaks the README lists.
 * **The rendered block must never contain `data-edguidance=`** - lesson filters some text twice.
+* **The editor's preview lives in a shadow root on the token, never inside it.** Anything inside a
+  token is saved into host text, and `token::PATTERN` stops at the first `</div>`, so the filter
+  would strip only the start of it and students would see the rest.
 * **`card_injector` relies on core internals** (per-request modinfo, afterlink). Keep
   `tests/card_injector_test.php` rendering real cards and fragments; do not reduce it to checking
   `$cm->afterlink`.

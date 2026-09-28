@@ -131,7 +131,9 @@ class card_injector {
         }
 
         if ($html !== '') {
-            $cm->set_after_link($existing . $html);
+            // Wrapped as Boost and Snap wrap a description they show in a card (get_formatted_content()'s
+            // overflowdiv), so the guidance sits in the card as it would in a shown description.
+            $cm->set_after_link($existing . \html_writer::div($html, 'no-overflow'));
         }
     }
 

@@ -80,16 +80,41 @@ class api {
      * @return \stdClass|null
      */
     public static function get_embed(\context $context, string $key, int $sectionid = 0): ?\stdClass {
+        return self::get_embeds($context, [$key], $sectionid)[$key] ?? null;
+    }
+
+    /**
+     * Blocks by key, within the context an editor is working in: get_embed() for every token in a
+     * text at once.
+     *
+     * @param \context $context The editor's context.
+     * @param string[] $keys The blocks' keys.
+     * @param int $sectionid The section whose summary is being edited, or 0.
+     * @return array<string, \stdClass> Keyed by key. A key with no block in this context is left out.
+     */
+    public static function get_embeds(\context $context, array $keys, int $sectionid = 0): array {
         global $DB;
 
+        // Before anything else, so that a context no block can belong to throws even with no keys.
         [$courseid, $cmid, $sectionid] = self::embed_target($context, $sectionid);
+        if (!$keys) {
+            return [];
+        }
 
-        return $DB->get_record('local_edguidance', [
-            'courseid' => $courseid,
-            'cmid' => $cmid,
-            'sectionid' => $sectionid,
-            'embedkey' => $key,
-        ]) ?: null;
+        [$insql, $params] = $DB->get_in_or_equal(array_values($keys), SQL_PARAMS_NAMED);
+        $params += ['courseid' => $courseid, 'cmid' => $cmid, 'sectionid' => $sectionid];
+        $rows = $DB->get_records_select(
+            'local_edguidance',
+            "courseid = :courseid AND cmid = :cmid AND sectionid = :sectionid AND embedkey $insql",
+            $params
+        );
+
+        $bykey = [];
+        foreach ($rows as $row) {
+            $bykey[$row->embedkey] = $row;
+        }
+
+        return $bykey;
     }
 
     /**

@@ -32,6 +32,7 @@
     * missing bool - the preset it used has gone, so the body is a possibly stale copy
     * dismissed bool - the current user has dismissed it
     * section bool - it is in a section summary rather than in an activity
+    * preview bool - for the editor's preview: no buttons, because a click anywhere on it edits it
 
     Example context (json):
     {
@@ -39,7 +40,8 @@
         "body": "<p>Set the due date before releasing this to students.</p>",
         "missing": false,
         "dismissed": false,
-        "section": false
+        "section": false,
+        "preview": false
     }
 }}
 <div class="edguidance{{#dismissed}} edguidance-is-dismissed{{/dismissed}}" data-region="edguidance" data-guidanceid="{{id}}">
@@ -47,17 +49,21 @@
         <div class="edguidance-header">
             <span class="edguidance-title">{{#str}} guidance, local_edguidance {{/str}}</span>
             <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
+            {{^preview}}
             <button type="button" class="btn btn-link btn-sm edguidance-dismiss" data-action="edguidance-dismiss"
                 aria-label="{{#str}} dismissguidance, local_edguidance {{/str}}">{{#str}} dismiss, local_edguidance {{/str}}</button>
+            {{/preview}}
         </div>
         {{#missing}}
             <div class="alert alert-info edguidance-missing" role="alert">{{#str}} guidancemissing, local_edguidance {{/str}}</div>
         {{/missing}}
         <div class="edguidance-body">{{{body}}}</div>
     </div>
+    {{^preview}}
     <button type="button" class="btn btn-link p-0 icon-no-margin edguidance-restore" data-region="edguidance-collapsed"
         data-action="edguidance-restore"
         aria-label="{{#section}}{{#str}} reviewsection, local_edguidance {{/str}}{{/section}}{{^section}}{{#str}} review, local_edguidance {{/str}}{{/section}}"{{^dismissed}} hidden{{/dismissed}}>
         {{#pix}} help, core {{/pix}}
     </button>
+    {{/preview}}
 </div>

@@ -43,6 +43,8 @@ Each slot is its own identity: guidance that uses slot 3 shows whatever slot 3 h
 $string['presettitle'] = 'Title';
 $string['presettitle_desc'] = 'Short name shown to teachers when choosing a preset.';
 $string['presetunavailable'] = 'That preset is no longer available. Choose another, or write your own.';
+$string['previewempty'] = 'This teacher guidance has no text, so nobody will see it. Click to write some, or delete it.';
+$string['previewnotfound'] = 'This teacher guidance belongs to another activity or section, or has been removed, so it will not show here. Click to write new guidance in its place, or delete it.';
 $string['privacy:metadata:favourites'] = 'Teacher guidance blocks that a user has dismissed.';
 $string['privacy:path:dismissed'] = 'Dismissed teacher guidance';
 $string['review'] = 'Review teacher guidance for this activity';

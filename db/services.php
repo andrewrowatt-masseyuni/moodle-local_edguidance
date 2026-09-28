@@ -33,6 +33,12 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
     ],
+    'local_edguidance_get_previews' => [
+        'classname' => 'local_edguidance\external\get_previews',
+        'description' => 'Render guidance blocks as the page shows them, for the editor to preview.',
+        'type' => 'read',
+        'ajax' => true,
+    ],
     'local_edguidance_set_dismissed' => [
         'classname' => 'local_edguidance\external\set_dismissed',
         'description' => 'Dismiss or restore a guidance block for the current user.',

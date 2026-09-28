@@ -114,20 +114,20 @@ div.edguidance-embed[data-edguidance] {
 }
 
 /*
- * Boost: description guidance placed in the card's afterlink row (classes/local/card_injector.php).
- * Core lays that row out as a centred flex line for a file size or a badge; guidance needs the full
- * width. Once only the collapsed icon is left, the row's rule and spacing are dropped so the icon
- * does not sit alone under a divider.
+ * Boost: description guidance placed in the card's afterlink row (classes/local/card_injector.php),
+ * inside a .no-overflow wrapper as a shown description would be. Core lays that row out as a centred
+ * flex line for a file size or a badge; guidance needs the full width. Once only the collapsed icon
+ * is left, the row's rule and spacing are dropped so the icon does not sit alone under a divider.
  */
-.activity-item .activity-afterlink:has(> .edguidance) {
+.activity-item .activity-afterlink:has(> .no-overflow > .edguidance) {
     flex-wrap: wrap;
 }
 
-.activity-item .activity-afterlink > .edguidance {
+.activity-item .activity-afterlink > .no-overflow:has(> .edguidance) {
     flex: 1 1 100%;
 }
 
-.activity-item .activity-afterlink:has(> .edguidance.edguidance-is-dismissed:only-child) {
+.activity-item .activity-afterlink:has(> .no-overflow:only-child > .edguidance.edguidance-is-dismissed:only-child) {
     margin-top: 0;
     padding-top: 0;
     border-top: 0;

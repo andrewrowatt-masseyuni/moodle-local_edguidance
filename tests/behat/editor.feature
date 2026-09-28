@@ -37,8 +37,10 @@ Feature: Adding teacher guidance from the editor
     And I click on "[role^='menuitem'][aria-label='Start with blank']" "css_element"
     And I set the field "Teacher guidance" to "<p>My own words for this chapter.</p>"
     And I click on "Save changes" "button" in the "Teacher guidance" "dialogue"
+    Then the "Content" TinyMCE editor should preview guidance "My own words for this chapter."
+    And the "Content" TinyMCE editor should not save "My own words for this chapter."
     And I press "Save changes"
-    Then I should see "Chapter text."
+    And I should see "Chapter text."
     And I should see "My own words for this chapter."
 
   @javascript
@@ -50,5 +52,32 @@ Feature: Adding teacher guidance from the editor
     And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
     And I click on "[role^='menuitem'][aria-label='Use a preset']" "css_element"
     And I click on "[role^='menuitem'][aria-label='Group work']" "css_element"
+    Then the "Content" TinyMCE editor should preview guidance "Form groups before starting."
+    And the "Content" TinyMCE editor should not save "Form groups before starting."
+    # Undo and redo rebuild the token, which then has no preview until the editor gives it one again.
+    And I click on the "Undo" button for the "Content" TinyMCE editor
+    And I click on the "Redo" button for the "Content" TinyMCE editor
+    And the "Content" TinyMCE editor should preview guidance "Form groups before starting."
     And I press "Save changes"
-    Then I should see "Form groups before starting."
+    And I should see "Form groups before starting."
+
+  @javascript
+  Scenario: Editing guidance updates its preview
+    Given I am on the "Course book" "book activity" page logged in as teacher1
+    And I turn editing mode on
+    And I follow "Edit chapter \"1. Chapter 1\""
+    And I expand all toolbars for the "Content" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And I click on "[role^='menuitem'][aria-label='Use a preset']" "css_element"
+    And I click on "[role^='menuitem'][aria-label='Group work']" "css_element"
+    When I switch to the "Content" TinyMCE editor iframe
+    And I click on "div[data-edguidance]" "css_element"
+    And I switch to the main frame
+    And I set the field "Guidance" to "My own text"
+    And I set the field "Teacher guidance" to "<p>Groups of three for this chapter.</p>"
+    And I click on "Save changes" "button" in the "Teacher guidance" "dialogue"
+    Then the "Content" TinyMCE editor should preview guidance "Groups of three for this chapter."
+    And the "Content" TinyMCE editor should not save "Groups of three for this chapter."
+    And I press "Save changes"
+    And I should see "Groups of three for this chapter."
+    And I should not see "Form groups before starting."

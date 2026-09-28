@@ -76,9 +76,10 @@ use the **Teacher guidance** button on the editor toolbar (also under **Insert**
   The copy is your own and does not change when the preset does.
 * **Start with blank** - opens the guidance editor empty.
 
-The guidance appears in the editor as a labelled chip. Click it (or choose **Edit this guidance**
-with the cursor on it) to change it, to switch it to a different preset, or to turn a linked preset
-into an editable copy by choosing *My own text*. Delete the chip to remove the guidance.
+The guidance appears in the editor as it will on the page, with *Click to edit* where the page has
+*Dismiss*. Click it (or choose **Edit this guidance** with the cursor on it) to change it, to switch
+it to a different preset, or to turn a linked preset into an editable copy by choosing *My own
+text*. Delete it as you would any other block of text to remove the guidance.
 
 ### Where it shows
 
@@ -185,7 +186,11 @@ every path that re-renders a card over AJAX, because all of them format the desc
 With it unticked, the description never reaches the course page, so `local\card_injector` puts the
 description's blocks into the card's **afterlink** instead: the slot Boost prints at the foot of the
 card (`course/format/templates/local/content/cm/activity.mustache`) and Snap prints in its card meta
-row (`theme/snap/classes/output/core/course_renderer.php`). **No theme is changed.**
+row (`theme/snap/classes/output/core/course_renderer.php`). **No theme is changed.** The blocks
+are wrapped in `<div class="no-overflow">`, as both themes wrap a description they show
+(`get_formatted_content()`'s `overflowdiv`), so the guidance sits in the card as it would in a shown
+description. The Boost rules in `styles.css` that widen the afterlink row, and drop its divider
+once only the collapsed icon is left, select through that wrapper.
 
 Core 4.5 has no hook for adding to another module's card - afterlink is normally set by the owning
 module's own `_cm_info_view()`. This works because:
@@ -261,6 +266,41 @@ Restore merging into an existing section fires the same event *before* this plug
 section's blocks, and a claim then would copy whichever of the target course's blocks already has
 the key, rather than the one in the backup. So the restore plugin holds claims off for the course
 while each section step runs, and sorts the keys out itself (see *Backup and restore*).
+
+### The preview in the editor
+
+`tiny_edguidance` shows each token as the page will show its block: the same template, rendered by
+`block::render_preview()` (no buttons, and never collapsed, whoever has dismissed it) and fetched for
+every token in the text at once from `local_edguidance_get_previews`.
+
+The preview is the guidance, so it must never be saved: it would go wherever the text goes (see
+*The token*). Worse, `token::PATTERN` matches a token only up to its first `</div>`, so the filter
+would strip the start of a filled token and show students the rest. So the preview is never put
+inside the token. It goes in a **shadow root** attached to the token, which `innerHTML` and
+`cloneNode()` leave out, and with them everything TinyMCE builds from those: the saved text,
+autosave, copying and undo. As a second line, a serializer attribute filter empties every token
+and drops its `contenteditable` however the text is read. That also catches anything typed into a
+token in the source code view.
+
+TinyMCE rebuilds tokens freely (setting content, paste, drag and drop, undo), and a rebuilt token
+has no shadow root. Undo can rewrite the body without firing `SetContent`, so a `MutationObserver`
+on the body, not an editor event, attaches previews as tokens arrive.
+
+The editor's iframe carries only the theme's *editor* stylesheet (in Boost, Bootstrap alone), which
+knows nothing of `styles.css`. So each shadow root links the page's own theme stylesheets
+(`theme_config::css_urls()`, handed to the editor in its configuration), which the page around the
+editor has already loaded. Browsers ignore `@font-face` inside a shadow root, so the page's Font
+Awesome font faces are also copied onto the editor's document, for the title's icon.
+
+Blocks are looked up as the guidance form looks them up - `api::get_embeds()`, within the editor's
+context - so a token pasted in from elsewhere previews as a "not found" notice, and a draft previews
+on the *add an activity* form. Drafts are why the service needs `manage` rather than `view`. A block
+with nothing to say previews as a notice rather than as nothing, so there is still something to
+click.
+
+Nothing inside the preview is interactive (`pointer-events: none`): a click lands on the token and
+opens the form, and a link or video in the guidance does nothing inside the editor. Filter output
+that needs JavaScript, such as MathJax or a media player, does not start in the preview.
 
 ### Dismissing
 
@@ -339,15 +379,19 @@ php admin/tool/behat/cli/run.php --tags=@local_edguidance
 
 Behat covers card guidance with the description shown and hidden, in Boost and in Snap; dismiss and
 restore; per-teacher dismissal; a preset updating live; book chapters and lesson pages; section
-summaries, in Boost and in Snap; and adding guidance with the editor button, in a chapter and a
-section summary.
+summaries, in Boost and in Snap; adding guidance with the editor button, in a chapter and a section
+summary; and the editor's preview, as it is added and edited, with a check each time that the
+guidance is not in the text the editor would save.
 
-Two things to know when adding Behat coverage:
+Three things to know when adding Behat coverage:
 
 * `mod_book`'s generator makes chapters in `FORMAT_MOODLE`, which TinyMCE does not edit - Moodle
   quietly picks another editor and there is no button. Give chapters `contentformat` 1.
 * The `Insert > ...` menu step cannot reach a third menu level. Click the toolbar button and pick
   menu items by `[role^='menuitem'][aria-label='...']` instead, as `editor.feature` does.
+* The editor's preview is in a shadow root, which XPath cannot see into. Use `tiny_edguidance`'s
+  steps: *the "Content" TinyMCE editor should preview guidance "..."*, and *... should not save
+  "..."*.
 
 Static caches (`guidance`, `dismissed`, `card_injector`) are keyed on ids PHPUnit reuses between
 tests; reset them in `setUp()`.
