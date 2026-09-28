@@ -111,7 +111,7 @@ final class guidance_test extends \advanced_testcase {
     }
 
     /**
-     * A course costs one read however many activities in it ask, and drafts are left out.
+     * A course costs one read however many activities and sections in it ask, and drafts are left out.
      */
     public function test_a_course_costs_one_query(): void {
         global $DB;
@@ -125,6 +125,7 @@ final class guidance_test extends \advanced_testcase {
             $cmids[] = (int)$page->cmid;
         }
         $this->generator()->create_block(['courseid' => $course->id, 'cmid' => 0]);
+        $section = $this->generator()->create_block(['sectionid' => get_fast_modinfo($course)->get_section_info(1)->id]);
         guidance::reset_cache();
 
         $before = $DB->perf_get_reads();
@@ -132,6 +133,7 @@ final class guidance_test extends \advanced_testcase {
             $this->assertCount(1, guidance::for_cm((int)$course->id, $cmid));
             $this->assertCount(1, guidance::for_intro((int)$course->id, $cmid));
         }
+        $this->assertSame([$section->embedkey], array_keys(guidance::for_sections((int)$course->id)));
         $this->assertSame(1, $DB->perf_get_reads() - $before);
 
         $this->assertArrayNotHasKey(0, guidance::for_course((int)$course->id));

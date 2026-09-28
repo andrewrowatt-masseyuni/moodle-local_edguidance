@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Restore of teacher guidance, attached to every activity.
+ * Restore of teacher guidance, attached to every activity and every section.
  *
  * @package    local_edguidance
  * @category   backup
@@ -24,7 +24,7 @@
  */
 
 /**
- * Restores an activity's guidance blocks from its module.xml.
+ * Restores an activity's guidance blocks from its module.xml, and a section's from its section.xml.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -33,6 +33,9 @@
 class restore_local_edguidance_plugin extends restore_local_plugin {
     /** @var array<int, int> New block ids keyed by old, held until after_restore_module() maps them. */
     protected $blocks = [];
+
+    /** @var array<int, int> New section block ids keyed by old, held until after_restore_section(). */
+    protected $sectionblocks = [];
 
     /**
      * Paths at the module level.
@@ -89,5 +92,95 @@ class restore_local_edguidance_plugin extends restore_local_plugin {
             $this->set_mapping('local_edguidance_block', $oldid, $newid, true);
         }
         $this->add_related_files('local_edguidance', 'guidance', 'local_edguidance_block');
+    }
+
+    /**
+     * Paths at the section level.
+     *
+     * Also holds off local_edguidance\api::claim_section_summary() for the course until the section
+     * is done. Merging into an existing section fires course_section_updated before this plugin has
+     * seen the section's blocks, and a claim then would give the section a copy of whichever of
+     * the course's blocks already has the key, rather than the block in the backup. This is the
+     * last moment before that event; process_local_edguidance_sectionblock() sorts the keys out.
+     *
+     * @return restore_path_element[]
+     */
+    protected function define_section_plugin_structure() {
+        \local_edguidance\api::hold_claims($this->task->get_courseid(), true);
+
+        return [
+            new restore_path_element($this->get_namefor('sectionblock'), $this->get_pathfor('/blocks/block')),
+        ];
+    }
+
+    /**
+     * Restore one block against the new, or merged-into, section.
+     *
+     * The section's summary is already in place, so it decides:
+     *
+     * * a key the summary does not hold is skipped. That is a merge into an existing section that
+     *   kept its own summary, where the block would have no token to show it;
+     * * a key already used by this section's own block is skipped, and the token resolves to it;
+     * * a key used anywhere else in the course - restoring a section back into the course it came
+     *   from - would break the unique index and give two sections one key, which the filter cannot
+     *   tell apart. The restored block takes a new key, and the summary follows it.
+     *
+     * @param array|stdClass $data The block as backed up.
+     */
+    public function process_local_edguidance_sectionblock($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $oldid = $data->id;
+        unset($data->id);
+
+        $data->courseid = $this->task->get_courseid();
+        $data->cmid = 0;
+        $data->sectionid = $this->task->get_sectionid();
+        $data->introorder = 0;
+
+        $summary = (string)$DB->get_field('course_sections', 'summary', ['id' => $data->sectionid]);
+        if (!in_array($data->embedkey, \local_edguidance\token::keys_in($summary), true)) {
+            return;
+        }
+
+        $taken = $DB->get_field('local_edguidance', 'sectionid', [
+            'courseid' => $data->courseid,
+            'cmid' => 0,
+            'embedkey' => $data->embedkey,
+        ]);
+        if ($taken !== false && (int)$taken === (int)$data->sectionid) {
+            return;
+        }
+        if ($taken !== false) {
+            $newkey = \local_edguidance\token::new_key();
+            $summary = \local_edguidance\token::rekey($summary, [$data->embedkey => $newkey]);
+            $DB->set_field('course_sections', 'summary', $summary, ['id' => $data->sectionid]);
+            $data->embedkey = $newkey;
+        }
+
+        // Not mapped yet, as for a module's blocks.
+        $this->sectionblocks[$oldid] = $DB->insert_record('local_edguidance', $data);
+    }
+
+    /**
+     * The section is done: let claims through again.
+     */
+    public function after_execute_section() {
+        \local_edguidance\api::hold_claims($this->task->get_courseid(), false);
+    }
+
+    /**
+     * Map the section's blocks, then restore their files, as after_restore_module() does.
+     */
+    public function after_restore_section() {
+        if (!$this->sectionblocks) {
+            return;
+        }
+
+        foreach ($this->sectionblocks as $oldid => $newid) {
+            $this->set_mapping('local_edguidance_sectionblock', $oldid, $newid, true);
+        }
+        $this->add_related_files('local_edguidance', 'guidance', 'local_edguidance_sectionblock');
     }
 }

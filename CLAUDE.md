@@ -18,7 +18,7 @@ repository's CI fetches the others with `moodle-plugin-ci add-plugin`, so a chan
 three must be pushed to all three before CI can pass.
 
 All three are checked out inside a **Moodle 4.5 core checkout** (branch `MOODLE_405_STABLE`) at
-`/home/arowatt/moodle405_mod_edpreset`, the development host and the session's working directory.
+`/home/arowatt/moodle405_local_edguidance`, the development host and the session's working directory.
 Commit plugin work from inside each plugin's own directory; never commit into the outer core repo.
 Editing core, or a theme, is not the answer here - the design exists precisely to need neither.
 
@@ -26,12 +26,13 @@ Editing core, or a theme, is not the answer here - the design exists precisely t
 was made, with the failure it prevents. **Read the relevant section before changing that area, and
 update it in the same change.** Notes below are operating context only.
 
-`mod_ednote` (retired) is what this replaced. `mod_edpreset` knows nothing about guidance: exemplar
-guidance reaches copies inside the activity backup.
+This project neither depends on nor relates to
+`mod_edpreset`, which is developed separately in its own checkout (`moodle405_mod_edpreset`); do not
+look there for context or make changes there.
 
 ## Commands
 
-From the Moodle root, inside the container (`docker exec moodle405_mod_edpreset-webserver-1 ...`,
+From the Moodle root, inside the container (`docker exec moodle405_local_edguidance-webserver-1 ...`,
 cwd `/var/www/html`):
 
 ```bash
@@ -65,6 +66,13 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
   (pass course ids to `get_fast_modinfo()`); `course_get_format()` caches modinfo per course, so
   switching users mid-test renders the first user's cards; Moodle sets `arg_separator.output` to
   `&amp;`, so build query strings with `http_build_query($data, '', '&')`.
+* **`cmid = 0` is not always a draft.** A section's block has `cmid = 0` and `sectionid > 0`; any
+  query meant for drafts must also say `sectionid = 0`, or the daily purge deletes section guidance.
+* **Section keys are scoped to the course, not the section**, because a filter only knows the
+  context. `api::claim_section_summary()` (on `course_section_updated`) is what stops two sections
+  sharing a block; restore holds it off while a section step runs.
+* **`SITEID` is a string.** Compare it as `(int)SITEID`; a strict comparison with an int never
+  matches.
 * Reset `guidance`, `dismissed` and `card_injector` static caches in `setUp()`.
 * Bump `version.php` with every `db/` change, paired with a savepoint in `db/upgrade.php`.
 * Lang keys are kept in alphabetical order.

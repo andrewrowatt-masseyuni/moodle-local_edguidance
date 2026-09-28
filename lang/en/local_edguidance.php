@@ -37,7 +37,7 @@ $string['presetguidance_desc'] = 'Shown wherever this preset is used. Changes ap
 $string['presetn'] = 'Preset {$a}';
 $string['presetpreview'] = 'Preset guidance';
 $string['presets'] = 'Guidance presets';
-$string['presets_desc'] = 'Up to ten pieces of guidance that teachers can add to any activity, book chapter or lesson page. A teacher can either use a preset as it stands - it cannot be edited, and it updates whenever you change it here - or start from a copy of it and edit that. A preset needs both a title and some guidance to be offered.
+$string['presets_desc'] = 'Up to ten pieces of guidance that teachers can add to any activity, book chapter, lesson page or section summary. A teacher can either use a preset as it stands - it cannot be edited, and it updates whenever you change it here - or start from a copy of it and edit that. A preset needs both a title and some guidance to be offered.
 
 Each slot is its own identity: guidance that uses slot 3 shows whatever slot 3 holds. To retire a preset, empty its slot rather than replacing it with something unrelated. Guidance that used an emptied slot keeps showing its last copy, marked as possibly out of date.';
 $string['presettitle'] = 'Title';
@@ -46,6 +46,7 @@ $string['presetunavailable'] = 'That preset is no longer available. Choose anoth
 $string['privacy:metadata:favourites'] = 'Teacher guidance blocks that a user has dismissed.';
 $string['privacy:path:dismissed'] = 'Dismissed teacher guidance';
 $string['review'] = 'Review teacher guidance for this activity';
+$string['reviewsection'] = 'Review teacher guidance for this section';
 $string['source'] = 'Guidance';
 $string['source_help'] = 'Use a preset to show site-wide guidance that stays up to date and cannot be edited here. Choose "My own text" to write your own, or to edit a copy of a preset.';
 $string['sourceown'] = 'My own text';

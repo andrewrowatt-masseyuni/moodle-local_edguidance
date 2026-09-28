@@ -30,6 +30,10 @@ class behat_local_edguidance_generator extends behat_generator_base {
      * the matching token - <div class="edguidance-embed" data-edguidance="KEY"></div> - into the
      * activity's description, a chapter or a page for it to be shown.
      *
+     * "local_edguidance > section blocks": a guidance block for the section with the given number
+     * in the course with the given shortname. Its summary should hold the token; give "summary" to
+     * set it.
+     *
      * @return array
      */
     protected function get_creatable_entities(): array {
@@ -39,6 +43,12 @@ class behat_local_edguidance_generator extends behat_generator_base {
                 'datagenerator' => 'block',
                 'required' => ['activity', 'embedkey'],
                 'switchids' => ['activity' => 'cmid'],
+            ],
+            'section blocks' => [
+                'singular' => 'section block',
+                'datagenerator' => 'section_block',
+                'required' => ['course', 'section', 'embedkey'],
+                'switchids' => ['course' => 'courseid'],
             ],
         ];
     }

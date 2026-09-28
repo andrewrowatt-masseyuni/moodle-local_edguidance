@@ -1,12 +1,13 @@
 # Teacher guidance (local_edguidance)
 
 Shows guidance to teaching staff, embedded where it is needed: in an activity's description (and so
-in its activity card on the course page), in a book chapter, or in a lesson page. Students never see
-it.
+in its activity card on the course page), in a book chapter, in a lesson page, or in a section
+summary. Students never see it.
 
 Each teacher can dismiss a piece of guidance they have finished with. It collapses to a small help
-icon whose popover reads "Review teacher guidance for this activity"; clicking the icon brings the
-guidance back. Dismissing is personal and never changes what a colleague sees.
+icon whose popover reads "Review teacher guidance for this activity" (or "for this section");
+clicking the icon brings the guidance back. Dismissing is personal and never changes what a
+colleague sees.
 
 Administrators can keep up to ten site-wide **guidance presets**. A teacher can use a preset as it
 stands - it cannot be edited, and it updates everywhere the moment the administrator changes it - or
@@ -66,8 +67,8 @@ manager.
 
 ### Adding guidance
 
-In an activity description, a book chapter or a lesson page, use the **Teacher guidance** button on
-the editor toolbar (also under **Insert**):
+In an activity description, a book chapter, a lesson page or a section summary (**Edit section**),
+use the **Teacher guidance** button on the editor toolbar (also under **Insert**):
 
 * **Use a preset** > *title* - links the site preset. Nothing to type; it cannot be edited, and it
   follows the administrator's changes.
@@ -86,6 +87,7 @@ into an editable copy by choosing *My own text*. Delete the chip to remove the g
 * **Activity description**, with that setting off: at the foot of the activity card (Boost), or in
   the card's top row (Snap). The rest of the description stays off the course page, as before.
 * **Book chapter** and **lesson page**: where the chip is.
+* **Section summary**: where the chip is, on the course page.
 
 A student sees the text around the guidance and nothing of the guidance. A description that was
 nothing but guidance shows the student no description at all.
@@ -114,27 +116,33 @@ With only the token in the text, all three expose nothing. Where the filter does
 renders as nothing: TinyMCE pads an empty div with `&nbsp;`, so `styles.css` hides unreplaced tokens.
 
 The token survives because every host this is for displays with `noclean`: book chapters
-(`mod/book/view.php`), lesson pages (`lesson_page::get_contents()`) and activity descriptions, which
-`format_module_intro()` caches unfiltered and `cm_info::get_formatted_content()` filters per request.
+(`mod/book/view.php`), lesson pages (`lesson_page::get_contents()`), activity descriptions, which
+`format_module_intro()` caches unfiltered and `cm_info::get_formatted_content()` filters per request,
+and section summaries (`core_courseformat\output\local\content\section\summary`, which Snap uses
+too).
 HTMLPurifier strips `data-*` attributes, so text that *is* cleaned - anywhere, or everywhere under
 `$CFG->forceclean` - loses the token and shows no guidance. That fails closed, and
 `filter_edguidance`'s tests pin it.
 
 A key belongs to one activity. Lookups are always by (activity, key), so a token copied into another
-activity does not resolve there: editors see a "not found" notice and everyone else sees nothing.
+activity does not resolve there: editors see a "not found" notice and everyone else sees nothing. A
+section's key belongs to its course - see *Guidance in section summaries* for why, and what keeps
+two sections from sharing one.
 
 ### Data
 
 | Column | Role |
 | --- | --- |
-| `courseid`, `cmid` | Where the block belongs. `cmid = 0` is a *draft* - see below. |
-| `embedkey` | Matches the token. Unique per activity. Never remapped. |
+| `courseid`, `cmid` | Where the block belongs. `cmid = 0` is a section's block or a *draft* - see below. |
+| `sectionid` | The section whose summary holds the block, with `cmid = 0`. 0 for an activity's block and for a draft, so a draft is `cmid = 0 AND sectionid = 0`. |
+| `embedkey` | Matches the token. Unique per activity, and per course among sections and drafts (one index: course, cm, key). Remapped only when a restored section's key is already taken in its course. |
 | `introorder` | 0 if the block is not in the activity description; otherwise its position there. |
 | `presetslot` | 0 for the block's own text; 1-10 to use that site preset. |
 | `guidance`, `guidanceformat` | Own text - or, for a preset block, a snapshot taken when it was linked. |
 
 Files embedded in a block's own text live in filearea `guidance`, itemid = the row id, in the
-activity's context, served by `local_edguidance_pluginfile()` to holders of `view` only.
+activity's context - the course's, for a section's block or a draft - served by
+`local_edguidance_pluginfile()` to holders of `view` only (`manage`, for a draft).
 
 ### Resolving the text
 
@@ -162,9 +170,9 @@ A slot *is* the identity: a block stores `presetslot = 3` and shows whatever slo
 slot 3 with unrelated guidance changes every block that used it; emptying it makes those blocks fall
 back to their snapshots. The settings page says so.
 
-Presets are the **only** thing that stays live. Copying an activity - duplicate, backup and restore,
-course copy, `mod_edpreset` - copies a block's own text as it stands, but carries `presetslot`
-verbatim, so a preset block stays live in every copy. `presetslot` names a site setting rather than
+Presets are the **only** thing that stays live. Copying an activity or a section - duplicate, backup
+and restore, course copy, `mod_edpreset` - copies a block's own text as it stands, but carries
+`presetslot` verbatim, so a preset block stays live in every copy. `presetslot` names a site setting rather than
 anything in the course, so on another site it shows that site's preset in that slot (presets are
 generic guidance, so nothing course-private can leak) or the snapshot if the slot is empty.
 
@@ -218,8 +226,41 @@ the activity is saved, `api::adopt_intro()` finds the draft by (course, key), mo
 the new module context and gives it the activity's id. A daily task (`purge_drafts`) deletes drafts
 more than a day old, which is what a cancelled form leaves behind.
 
-The editor button is offered in a course context only on `/course/modedit.php`, so there is no other
-way to make a draft.
+The editor button is offered in a course context only on `/course/modedit.php` and, for a section's
+block, on `/course/editsection.php`, so there is no other way to make a draft. A section's block has
+`cmid = 0` too, so every query for drafts - adopting, purging - also says `sectionid = 0`; without
+that, pasting a section's token into a new activity would carry the block off, and the daily purge
+would delete every section's guidance.
+
+### Guidance in section summaries
+
+A section summary is edited on `/course/editsection.php` in the **course** context - the same
+context as the *add an activity* form, whose blocks are drafts. Only the page tells them apart, so
+`tiny_edguidance` reads the section id from the page URL and hands it to the editor, which sends it
+back with every call; `api::embed_target()` checks it belongs to the course before anything is
+saved.
+
+A section summary is formatted in the course context too, and a filter is told the context and
+nothing else. So `filter_edguidance` resolves a token in a course context against *any* section's
+block in the course (`guidance::for_sections()`): a section's key is scoped to its course, not to its
+section. The front page is left out entirely.
+
+That would let two summaries share one block - showing the same guidance, deleting it with either
+section, changing both when either is edited - and core makes that happen: duplicating a section
+(`course_format::duplicate_section()`) copies its summary verbatim, and a teacher can paste one
+section's token into another. Core 4.5 has no hook for either. What it has is the
+`course_section_updated` event, fired whenever a section is saved, including the new section during
+a duplicate. `observer` hands that to `api::claim_section_summary()`, which gives the section its own
+copy - same text, same preset, same files, no dismissals - of any block in its summary that belongs
+to another section, under a new key, and rewrites the summary to match. It writes the summary
+straight to the table rather than through `course_update_section()`, which would fire the event
+again, and purges the section cache as that would have. Tokens that are not a section's block in the
+course are left alone and resolve to nothing, as between activities.
+
+Restore merging into an existing section fires the same event *before* this plugin has seen the
+section's blocks, and a claim then would copy whichever of the target course's blocks already has
+the key, rather than the one in the backup. So the restore plugin holds claims off for the course
+while each section step runs, and sorts the keys out itself (see *Backup and restore*).
 
 ### Dismissing
 
@@ -255,14 +296,24 @@ Nothing in core deletes this plugin's rows or anyone's dismissals, so:
   favourites. `tool_recyclebin`'s own callback runs first (tool before local), so a recycled activity
   is backed up with its guidance;
 * `\core_course\hook\before_course_deleted` does the same for a course, because course deletion
-  removes modules without the per-module callbacks.
+  removes modules without the per-module callbacks;
+* the `course_section_deleted` event deletes a section's blocks, and `course_content_deleted` every
+  section's in a course, because `remove_course_contents()` (a restore that deletes the existing
+  content first, say) deletes sections straight from the table.
 
 ### Backup and restore
 
 `backup_local_edguidance_plugin` adds an activity's blocks to its `module.xml`, which covers course
-backup and restore, import, course copy, *Duplicate*, the recycle bin and `mod_edpreset`'s copies.
-`embedkey` and `presetslot` are carried verbatim - the token in the restored text matches the same
-key.
+backup and restore, import, course copy, *Duplicate*, the recycle bin and `mod_edpreset`'s copies,
+and a section's blocks to its `section.xml`, which covers the same for sections (duplicating a
+section is not a backup; see *Guidance in section summaries*). `embedkey` and `presetslot` are
+carried verbatim - the token in the restored text matches the same key.
+
+A section may be merged into one that already exists, so its restored summary decides what is
+restored: a block whose key is not in the summary (the existing section kept its own) is skipped; a
+key already used by that section's own block is skipped, and the token resolves to it; a key used
+anywhere else in the course - restoring a section back into the course it came from - gets a new
+key, and the summary follows it.
 
 `restore_local_edguidance_plugin` maps the blocks and restores their files in
 `after_restore_module()`, not as each block is processed. The plugin hangs off the module step, which
@@ -287,8 +338,9 @@ php admin/tool/behat/cli/run.php --tags=@local_edguidance
 ```
 
 Behat covers card guidance with the description shown and hidden, in Boost and in Snap; dismiss and
-restore; per-teacher dismissal; a preset updating live; book chapters and lesson pages; and adding
-guidance with the editor button.
+restore; per-teacher dismissal; a preset updating live; book chapters and lesson pages; section
+summaries, in Boost and in Snap; and adding guidance with the editor button, in a chapter and a
+section summary.
 
 Two things to know when adding Behat coverage:
 

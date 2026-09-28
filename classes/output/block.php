@@ -20,7 +20,8 @@ use local_edguidance\dismissed;
 use local_edguidance\guidance;
 
 /**
- * One guidance block, wherever it appears: in an activity card, a book chapter or a lesson page.
+ * One guidance block, wherever it appears: in an activity card, a book chapter, a lesson page or a
+ * section summary.
  *
  * Both states are exported - the guidance, and the help icon it collapses to once dismissed - and
  * the server decides which one starts hidden. The AMD module only toggles between them, so
@@ -57,6 +58,7 @@ class block implements \renderable, \templatable {
             'body' => $this->resolved->content,
             'missing' => $this->resolved->missing,
             'dismissed' => dismissed::is_dismissed((int)$this->row->id),
+            'section' => (int)$this->row->sectionid > 0,
         ];
     }
 

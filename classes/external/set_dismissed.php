@@ -21,6 +21,7 @@ use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_edguidance\dismissed;
+use local_edguidance\guidance;
 
 /**
  * Dismiss or restore a guidance block for the current user.
@@ -57,10 +58,16 @@ class set_dismissed extends external_api {
             ['guidanceid' => $guidanceid, 'dismissed' => $dismissed]
         );
 
-        // Drafts (cmid 0) are never rendered, so there is nothing to dismiss.
-        $row = $DB->get_record_select('local_edguidance', 'id = :id AND cmid > 0', ['id' => $guidanceid], '*', MUST_EXIST);
+        // Drafts (neither an activity nor a section) are never rendered, so there is nothing to dismiss.
+        $row = $DB->get_record_select(
+            'local_edguidance',
+            'id = :id AND (cmid > 0 OR sectionid > 0)',
+            ['id' => $guidanceid],
+            '*',
+            MUST_EXIST
+        );
 
-        $context = \context_module::instance($row->cmid);
+        $context = guidance::context_for($row);
         self::validate_context($context);
         // The real gate: it is what stops a student quietly accumulating rows against blocks they
         // were never shown.

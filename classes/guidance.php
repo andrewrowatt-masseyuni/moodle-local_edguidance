@@ -23,9 +23,9 @@ namespace local_edguidance;
  * editing the preset updates every block already sitting in a course. That is why the text is
  * resolved here, at render time, on every request.
  *
- * Rows are read a whole course at a time and held for the request. The filter asks about one
- * activity's blocks at a time, and a course page may run it over a dozen descriptions; paying one
- * query per course rather than one per activity keeps that flat.
+ * Rows are read a whole course at a time - activities' and sections' blocks together - and held
+ * for the request. The filter asks about one activity or section summary at a time, and a course
+ * page may run it over a dozen of each; paying one query per course keeps that flat.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -33,21 +33,49 @@ namespace local_edguidance;
  */
 class guidance {
     /** @var string The columns every lookup returns. */
-    protected const FIELDS = 'id, courseid, cmid, embedkey, introorder, presetslot, guidance, guidanceformat';
+    protected const FIELDS = 'id, courseid, cmid, sectionid, embedkey, introorder, presetslot, guidance, guidanceformat';
 
-    /** @var array<int, array<int, array<string, \stdClass>>> Rows keyed by course id, cm id, then key. */
+    /**
+     * Rows keyed by course id, then 'cms' => cm id => key, and 'sections' => key.
+     *
+     * @var array<int, array{cms: array<int, array<string, \stdClass>>, sections: array<string, \stdClass>}>
+     */
     protected static $cache = [];
 
     /** @var int How deep we are inside formatting a block's own text. */
     protected static $rendering = 0;
 
     /**
-     * Every block in a course, keyed by cm id and then by key. Drafts are not included.
+     * Every block in a course's activities, keyed by cm id and then by key.
      *
      * @param int $courseid The course.
      * @return array<int, array<string, \stdClass>>
      */
     public static function for_course(int $courseid): array {
+        return self::load($courseid)['cms'];
+    }
+
+    /**
+     * Every block in a course's section summaries, keyed by key.
+     *
+     * Keyed by course rather than by section because that is all the filter knows: a section
+     * summary is formatted in its course's context, which says nothing of which section it is.
+     * api::claim_section_summary() is what keeps a section from showing another's block.
+     *
+     * @param int $courseid The course.
+     * @return array<string, \stdClass>
+     */
+    public static function for_sections(int $courseid): array {
+        return self::load($courseid)['sections'];
+    }
+
+    /**
+     * Read a course's blocks, drafts aside, once per request.
+     *
+     * @param int $courseid The course.
+     * @return array{cms: array<int, array<string, \stdClass>>, sections: array<string, \stdClass>}
+     */
+    protected static function load(int $courseid): array {
         global $DB;
 
         if (isset(self::$cache[$courseid])) {
@@ -56,18 +84,22 @@ class guidance {
 
         $rows = $DB->get_records_select(
             'local_edguidance',
-            'courseid = :courseid AND cmid > 0',
+            'courseid = :courseid AND (cmid > 0 OR sectionid > 0)',
             ['courseid' => $courseid],
             'cmid, introorder, id',
             self::FIELDS
         );
 
-        $bycm = [];
+        $blocks = ['cms' => [], 'sections' => []];
         foreach ($rows as $row) {
-            $bycm[(int)$row->cmid][$row->embedkey] = $row;
+            if ((int)$row->cmid > 0) {
+                $blocks['cms'][(int)$row->cmid][$row->embedkey] = $row;
+            } else {
+                $blocks['sections'][$row->embedkey] = $row;
+            }
         }
 
-        return self::$cache[$courseid] = $bycm;
+        return self::$cache[$courseid] = $blocks;
     }
 
     /**
@@ -107,7 +139,7 @@ class guidance {
      * @return \stdClass With ->content (HTML, possibly '') and ->missing (bool).
      */
     public static function resolve(\stdClass $row): \stdClass {
-        $context = \context_module::instance((int)$row->cmid);
+        $context = self::context_for($row);
         $missing = false;
 
         $preset = (int)$row->presetslot > 0 ? presets::get((int)$row->presetslot) : null;
@@ -142,6 +174,21 @@ class guidance {
         }
 
         return (object)['content' => $content, 'missing' => $missing];
+    }
+
+    /**
+     * The context a block belongs to, and holds its files in: its activity's, or for a section's
+     * block or a draft, its course's.
+     *
+     * @param \stdClass $row A local_edguidance row.
+     * @return \context
+     */
+    public static function context_for(\stdClass $row): \context {
+        if ((int)$row->cmid > 0) {
+            return \context_module::instance((int)$row->cmid);
+        }
+
+        return \context_course::instance((int)$row->courseid);
     }
 
     /**

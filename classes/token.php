@@ -101,4 +101,29 @@ class token {
 
         return preg_replace_callback(self::PATTERN, fn(array $match) => $replacement($match[1]), $text);
     }
+
+    /**
+     * Point some tokens at different keys, leaving the rest of each token as the editor wrote it.
+     *
+     * @param string $text The text.
+     * @param string[] $keys New keys, keyed by old.
+     * @return string
+     */
+    public static function rekey(string $text, array $keys): string {
+        if (!$keys || !self::might_contain($text)) {
+            return $text;
+        }
+
+        return preg_replace_callback(self::PATTERN, function (array $match) use ($keys): string {
+            if (!isset($keys[$match[1]])) {
+                return $match[0];
+            }
+
+            return preg_replace(
+                '~(\b' . self::ATTRIBUTE . '\s*=\s*["\'])' . $match[1] . '~i',
+                '${1}' . $keys[$match[1]],
+                $match[0]
+            );
+        }, $text);
+    }
 }

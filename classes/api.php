@@ -30,49 +30,64 @@ class api {
     /** @var string The file area holding a block's own embedded files. */
     public const FILEAREA = 'guidance';
 
+    /** @var array<int, true> Courses whose section summaries are not to be claimed for now. */
+    protected static $heldclaims = [];
+
     /**
      * Where a block created from an editor in this context belongs.
      *
      * An editor in a module context - a chapter, a lesson page, an existing activity's description
-     * - makes a block for that module. An editor in a course context is the description on the
-     * "add an activity" form, where the module does not exist yet: that makes a draft, with cm id
-     * 0, which the activity adopts when it is saved.
+     * - makes a block for that module. An editor in a course context is either a section summary,
+     * named by $sectionid, which makes a block for that section; or the description on the "add an
+     * activity" form, where the module does not exist yet, which makes a draft (cm id and section id
+     * both 0) that the activity adopts when it is saved.
+     *
+     * The section id comes from the client, which is why it is checked against the course here.
      *
      * @param \context $context The editor's context.
-     * @return int[] [course id, cm id or 0 for a draft]
-     * @throws \invalid_parameter_exception For any other context.
+     * @param int $sectionid The section whose summary is being edited, or 0.
+     * @return int[] [course id, cm id or 0, section id or 0]
+     * @throws \invalid_parameter_exception For any other context, or a section not in the course.
      */
-    public static function embed_target(\context $context): array {
-        if ($context instanceof \context_module) {
+    public static function embed_target(\context $context, int $sectionid = 0): array {
+        global $DB;
+
+        if ($context instanceof \context_module && !$sectionid) {
             $cm = get_coursemodule_from_id('', $context->instanceid, 0, false, MUST_EXIST);
-            return [(int)$cm->course, (int)$cm->id];
+            return [(int)$cm->course, (int)$cm->id, 0];
         }
 
-        if ($context instanceof \context_course && (int)$context->instanceid !== SITEID) {
-            return [(int)$context->instanceid, 0];
+        if ($context instanceof \context_course && (int)$context->instanceid !== (int)SITEID) {
+            $courseid = (int)$context->instanceid;
+            if ($sectionid && !$DB->record_exists('course_sections', ['id' => $sectionid, 'course' => $courseid])) {
+                throw new \invalid_parameter_exception('That section is not in this course.');
+            }
+            return [$courseid, 0, $sectionid];
         }
 
-        throw new \invalid_parameter_exception('Teacher guidance can only be embedded in an activity.');
+        throw new \invalid_parameter_exception('Teacher guidance can only be embedded in an activity or a section.');
     }
 
     /**
      * A block by key, within the context an editor is working in.
      *
-     * Always scoped to that context, so a key copied from another activity cannot be used to read or
-     * edit a block that belongs somewhere else.
+     * Always scoped to that context, so a key copied from another activity or section cannot be
+     * used to read or edit a block that belongs somewhere else.
      *
      * @param \context $context The editor's context.
      * @param string $key The block's key.
+     * @param int $sectionid The section whose summary is being edited, or 0.
      * @return \stdClass|null
      */
-    public static function get_embed(\context $context, string $key): ?\stdClass {
+    public static function get_embed(\context $context, string $key, int $sectionid = 0): ?\stdClass {
         global $DB;
 
-        [$courseid, $cmid] = self::embed_target($context);
+        [$courseid, $cmid, $sectionid] = self::embed_target($context, $sectionid);
 
         return $DB->get_record('local_edguidance', [
             'courseid' => $courseid,
             'cmid' => $cmid,
+            'sectionid' => $sectionid,
             'embedkey' => $key,
         ]) ?: null;
     }
@@ -107,10 +122,17 @@ class api {
      * @param string|null $key The block to update, or null for a new one.
      * @param int $presetslot A site preset slot to use, or 0 for the block's own text.
      * @param array|null $editor The editor's value (text, format, itemid) when $presetslot is 0.
+     * @param int $sectionid The section whose summary is being edited, or 0.
      * @return string The block's key.
      * @throws \invalid_parameter_exception If the preset slot is not in use.
      */
-    public static function save_embed(\context $context, ?string $key, int $presetslot, ?array $editor = null): string {
+    public static function save_embed(
+        \context $context,
+        ?string $key,
+        int $presetslot,
+        ?array $editor = null,
+        int $sectionid = 0
+    ): string {
         global $DB;
 
         $preset = null;
@@ -118,14 +140,15 @@ class api {
             throw new \invalid_parameter_exception('That teacher guidance preset is not in use.');
         }
 
-        [$courseid, $cmid] = self::embed_target($context);
+        [$courseid, $cmid, $sectionid] = self::embed_target($context, $sectionid);
         $now = time();
 
-        $row = ($key !== null && $key !== '') ? self::get_embed($context, $key) : null;
+        $row = ($key !== null && $key !== '') ? self::get_embed($context, $key, $sectionid) : null;
         if (!$row) {
             $row = (object)[
                 'courseid' => $courseid,
                 'cmid' => $cmid,
+                'sectionid' => $sectionid,
                 'embedkey' => token::new_key(),
                 'introorder' => 0,
                 'presetslot' => 0,
@@ -205,7 +228,14 @@ class api {
                 continue;
             }
 
-            $draft = $DB->get_record('local_edguidance', ['courseid' => $cm->course, 'cmid' => 0, 'embedkey' => $key]);
+            // Section id 0: a section's block also has cm id 0, and must not be carried off by an
+            // activity whose description its token was pasted into.
+            $draft = $DB->get_record('local_edguidance', [
+                'courseid' => $cm->course,
+                'cmid' => 0,
+                'sectionid' => 0,
+                'embedkey' => $key,
+            ]);
             if ($draft) {
                 self::adopt_draft($draft, $cm, $order);
                 $inintro[(int)$draft->id] = true;
@@ -248,6 +278,107 @@ class api {
     }
 
     /**
+     * Give a section its own copy of any block whose token was copied into its summary from another
+     * section.
+     *
+     * Called whenever a section is updated. Core duplicates a section by copying its summary
+     * verbatim (course_format::duplicate_section() - there is no hook), and a teacher can paste one
+     * section's token into another. Either way two summaries would share one block: the filter
+     * cannot tell them apart, deleting either section would take the other's guidance with it, and
+     * editing one would change both. So the copy gets a block of its own - same text, same preset,
+     * same files - under a new key, and its summary is rewritten to match.
+     *
+     * Tokens whose block is not a section's in this course are left alone: they resolve to nothing,
+     * as a token copied between activities does.
+     *
+     * @param int $sectionid The course section.
+     */
+    public static function claim_section_summary(int $sectionid): void {
+        global $DB;
+
+        $section = $DB->get_record('course_sections', ['id' => $sectionid], 'id, course, summary');
+        if (!$section || isset(self::$heldclaims[(int)$section->course])) {
+            return;
+        }
+
+        $keys = token::keys_in($section->summary);
+        if (!$keys) {
+            return;
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($keys, SQL_PARAMS_NAMED);
+        $params['courseid'] = $section->course;
+        $params['sectionid'] = $sectionid;
+        $others = $DB->get_records_select(
+            'local_edguidance',
+            "courseid = :courseid AND cmid = 0 AND sectionid > 0 AND sectionid <> :sectionid AND embedkey $insql",
+            $params
+        );
+        if (!$others) {
+            return;
+        }
+
+        $rekeyed = [];
+        foreach ($others as $row) {
+            $rekeyed[$row->embedkey] = self::copy_to_section($row, $sectionid);
+        }
+
+        // Straight to the table rather than through course_update_section(), which would fire the
+        // event that called this. The cache purge is what that would have done.
+        $DB->set_field('course_sections', 'summary', token::rekey($section->summary, $rekeyed), ['id' => $sectionid]);
+        \course_modinfo::purge_course_section_cache_by_id((int)$section->course, $sectionid);
+        rebuild_course_cache((int)$section->course, false, true);
+        guidance::reset_cache();
+    }
+
+    /**
+     * Hold off, or resume, claiming section summaries in a course.
+     *
+     * For restore, which fires the same event while it is still sorting out a section's keys. See
+     * restore_local_edguidance_plugin::define_section_plugin_structure().
+     *
+     * @param int $courseid The course.
+     * @param bool $hold True to hold off, false to resume.
+     */
+    public static function hold_claims(int $courseid, bool $hold): void {
+        if ($hold) {
+            self::$heldclaims[$courseid] = true;
+        } else {
+            unset(self::$heldclaims[$courseid]);
+        }
+    }
+
+    /**
+     * Copy a section's block, with its files, into another section of the same course.
+     *
+     * Dismissals are not copied: the copy is a new block.
+     *
+     * @param \stdClass $row The block to copy.
+     * @param int $sectionid The section the copy belongs to.
+     * @return string The copy's key.
+     */
+    protected static function copy_to_section(\stdClass $row, int $sectionid): string {
+        global $DB;
+
+        $now = time();
+        $copy = clone $row;
+        unset($copy->id);
+        $copy->sectionid = $sectionid;
+        $copy->embedkey = token::new_key();
+        $copy->timecreated = $now;
+        $copy->timemodified = $now;
+        $copy->id = $DB->insert_record('local_edguidance', $copy);
+
+        $fs = get_file_storage();
+        $context = \context_course::instance((int)$row->courseid);
+        foreach ($fs->get_area_files($context->id, 'local_edguidance', self::FILEAREA, $row->id, 'id', false) as $file) {
+            $fs->create_file_from_storedfile(['itemid' => $copy->id], $file);
+        }
+
+        return $copy->embedkey;
+    }
+
+    /**
      * Delete every block belonging to a course module.
      *
      * @param int $cmid The course module.
@@ -269,6 +400,44 @@ class api {
         }
 
         $DB->delete_records('local_edguidance', ['cmid' => $cmid]);
+        guidance::reset_cache();
+    }
+
+    /**
+     * Delete a section's blocks, or every section's blocks in a course.
+     *
+     * Needed when a section is deleted, and when a course's contents are (a restore that deletes
+     * the existing content first, say): core deletes those sections without asking anyone.
+     *
+     * @param int $courseid The course.
+     * @param int $sectionid The section, or 0 for every section in the course.
+     */
+    public static function delete_for_sections(int $courseid, int $sectionid = 0): void {
+        global $DB;
+
+        $select = 'courseid = :courseid AND cmid = 0 AND sectionid > 0';
+        $params = ['courseid' => $courseid];
+        if ($sectionid) {
+            $select .= ' AND sectionid = :sectionid';
+            $params['sectionid'] = $sectionid;
+        }
+
+        $ids = $DB->get_fieldset_select('local_edguidance', 'id', $select, $params);
+        if (!$ids) {
+            return;
+        }
+
+        dismissed::purge($ids);
+
+        $context = \context_course::instance($courseid, IGNORE_MISSING);
+        if ($context) {
+            $fs = get_file_storage();
+            foreach ($ids as $id) {
+                $fs->delete_area_files($context->id, 'local_edguidance', self::FILEAREA, $id);
+            }
+        }
+
+        $DB->delete_records_select('local_edguidance', $select, $params);
         guidance::reset_cache();
     }
 
@@ -304,7 +473,7 @@ class api {
 
         $drafts = $DB->get_records_select(
             'local_edguidance',
-            'cmid = 0 AND timemodified < :before',
+            'cmid = 0 AND sectionid = 0 AND timemodified < :before',
             ['before' => $before],
             '',
             'id, courseid'

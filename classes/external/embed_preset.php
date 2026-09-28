@@ -42,6 +42,12 @@ class embed_preset extends external_api {
         return new external_function_parameters([
             'contextid' => new external_value(PARAM_INT, 'The context of the editor the block is embedded from'),
             'presetslot' => new external_value(PARAM_INT, 'The site preset slot to use'),
+            'sectionid' => new external_value(
+                PARAM_INT,
+                'The section whose summary the block is embedded in, for an editor in a course context',
+                VALUE_DEFAULT,
+                0
+            ),
         ]);
     }
 
@@ -50,19 +56,20 @@ class embed_preset extends external_api {
      *
      * @param int $contextid The editor's context.
      * @param int $presetslot The preset slot.
+     * @param int $sectionid The section whose summary is being edited, or 0.
      * @return array
      */
-    public static function execute(int $contextid, int $presetslot): array {
-        ['contextid' => $contextid, 'presetslot' => $presetslot] = self::validate_parameters(
+    public static function execute(int $contextid, int $presetslot, int $sectionid = 0): array {
+        ['contextid' => $contextid, 'presetslot' => $presetslot, 'sectionid' => $sectionid] = self::validate_parameters(
             self::execute_parameters(),
-            ['contextid' => $contextid, 'presetslot' => $presetslot]
+            ['contextid' => $contextid, 'presetslot' => $presetslot, 'sectionid' => $sectionid]
         );
 
         $context = \context::instance_by_id($contextid);
         self::validate_context($context);
         require_capability('local/edguidance:manage', $context);
 
-        return ['key' => api::save_embed($context, null, $presetslot)];
+        return ['key' => api::save_embed($context, null, $presetslot, null, $sectionid)];
     }
 
     /**

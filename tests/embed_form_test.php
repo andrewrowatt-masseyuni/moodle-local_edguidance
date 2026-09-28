@@ -214,4 +214,55 @@ final class embed_form_test extends \advanced_testcase {
         $this->expectException(\invalid_parameter_exception::class);
         $this->open(['contextid' => \context_system::instance()->id]);
     }
+
+    /**
+     * From a section summary's editor, the form makes a block for that section.
+     */
+    public function test_section_summary_block(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $section = get_fast_modinfo($course)->get_section_info(1);
+        $context = \context_course::instance($course->id);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $this->assertStringContainsString('name="sectionid" type="hidden" value="' . $section->id . '"', $this->open([
+            'contextid' => $context->id,
+            'sectionid' => $section->id,
+        ]));
+
+        $result = $this->submit([
+            'contextid' => $context->id,
+            'sectionid' => $section->id,
+            'key' => '',
+            'source' => 0,
+            'guidance_editor' => [
+                'text' => '<p>For this week.</p>',
+                'format' => FORMAT_HTML,
+                'itemid' => file_get_unused_draft_itemid(),
+            ],
+        ]);
+
+        $key = json_decode($result['data'])->key;
+        $row = $DB->get_record('local_edguidance', ['embedkey' => $key], '*', MUST_EXIST);
+        $this->assertSame((int)$section->id, (int)$row->sectionid);
+        $this->assertSame(0, (int)$row->cmid);
+    }
+
+    /**
+     * The form cannot be pointed at a section in another course.
+     */
+    public function test_refuses_a_section_elsewhere(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $other = $this->getDataGenerator()->create_course();
+
+        $this->expectException(\invalid_parameter_exception::class);
+        $this->open([
+            'contextid' => \context_course::instance($course->id)->id,
+            'sectionid' => get_fast_modinfo($other)->get_section_info(1)->id,
+        ]);
+    }
 }

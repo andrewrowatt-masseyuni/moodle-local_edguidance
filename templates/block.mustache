@@ -17,8 +17,8 @@
 {{!
     @template local_edguidance/block
 
-    One teacher guidance block, wherever it is shown: an activity card, a book chapter or a lesson
-    page.
+    One teacher guidance block, wherever it is shown: an activity card, a book chapter, a lesson page
+    or a section summary.
 
     Both states are rendered - the guidance, and the help icon it collapses to once dismissed - and
     the server decides which one starts hidden. local_edguidance/guidance only toggles between them.
@@ -31,13 +31,15 @@
     * body string - already formatted HTML, rendered unescaped
     * missing bool - the preset it used has gone, so the body is a possibly stale copy
     * dismissed bool - the current user has dismissed it
+    * section bool - it is in a section summary rather than in an activity
 
     Example context (json):
     {
         "id": 42,
         "body": "<p>Set the due date before releasing this to students.</p>",
         "missing": false,
-        "dismissed": false
+        "dismissed": false,
+        "section": false
     }
 }}
 <div class="edguidance{{#dismissed}} edguidance-is-dismissed{{/dismissed}}" data-region="edguidance" data-guidanceid="{{id}}">
@@ -54,7 +56,8 @@
         <div class="edguidance-body">{{{body}}}</div>
     </div>
     <button type="button" class="btn btn-link p-0 icon-no-margin edguidance-restore" data-region="edguidance-collapsed"
-        data-action="edguidance-restore" aria-label="{{#str}} review, local_edguidance {{/str}}"{{^dismissed}} hidden{{/dismissed}}>
+        data-action="edguidance-restore"
+        aria-label="{{#section}}{{#str}} reviewsection, local_edguidance {{/str}}{{/section}}{{^section}}{{#str}} review, local_edguidance {{/str}}{{/section}}"{{^dismissed}} hidden{{/dismissed}}>
         {{#pix}} help, core {{/pix}}
     </button>
 </div>

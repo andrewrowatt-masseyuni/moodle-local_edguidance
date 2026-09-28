@@ -26,8 +26,8 @@ class local_edguidance_generator extends component_generator_base {
     /**
      * Create a guidance block directly, without going through an editor.
      *
-     * @param array|stdClass $record Needs cmid, or courseid for a draft. Optional: embedkey,
-     *     guidance, guidanceformat, presetslot, introorder.
+     * @param array|stdClass $record Needs cmid, sectionid, or courseid for a draft. Optional:
+     *     embedkey, guidance, guidanceformat, presetslot, introorder.
      * @return stdClass The new row.
      */
     public function create_block($record): stdClass {
@@ -38,10 +38,13 @@ class local_edguidance_generator extends component_generator_base {
 
         if (!empty($record['cmid'])) {
             $record['courseid'] = (int)$DB->get_field('course_modules', 'course', ['id' => $record['cmid']], MUST_EXIST);
+        } else if (!empty($record['sectionid'])) {
+            $record['courseid'] = (int)$DB->get_field('course_sections', 'course', ['id' => $record['sectionid']], MUST_EXIST);
         }
 
         $row = (object)array_merge([
             'cmid' => 0,
+            'sectionid' => 0,
             'embedkey' => \local_edguidance\token::new_key(),
             'introorder' => 0,
             'presetslot' => 0,
@@ -53,6 +56,33 @@ class local_edguidance_generator extends component_generator_base {
 
         $row->id = $DB->insert_record('local_edguidance', $row);
         \local_edguidance\guidance::reset_cache();
+
+        return $row;
+    }
+
+    /**
+     * Create a block for a section, named by course and section number, as Behat does.
+     *
+     * Core has no generator for section summaries, so this can set one too.
+     *
+     * @param array|stdClass $record Needs courseid and section (the number). Optional: summary, the
+     *     section's new summary, which should hold the token. Otherwise as create_block().
+     * @return stdClass The new row.
+     */
+    public function create_section_block($record): stdClass {
+        global $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        $record = (array)$record;
+        $section = get_fast_modinfo($record['courseid'])->get_section_info($record['section'], MUST_EXIST);
+        $summary = $record['summary'] ?? null;
+        unset($record['section'], $record['summary']);
+
+        $row = $this->create_block(['sectionid' => $section->id] + $record);
+
+        if ($summary !== null) {
+            course_update_section($record['courseid'], $section, ['summary' => $summary, 'summaryformat' => FORMAT_HTML]);
+        }
 
         return $row;
     }

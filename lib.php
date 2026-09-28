@@ -85,7 +85,7 @@ function local_edguidance_override_webservice_execution($externalfunctioninfo, $
  * Serve the files embedded in a guidance block's own text.
  *
  * @param stdClass $course The course.
- * @param stdClass|null $cm The course module, or null for a draft's course context.
+ * @param stdClass|null $cm The course module, or null for a section's block or a draft, in the course context.
  * @param context $context The file's context.
  * @param string $filearea The file area.
  * @param array $args The remaining path: itemid, then the file path.
@@ -107,10 +107,11 @@ function local_edguidance_pluginfile($course, $cm, $context, $filearea, $args, $
         require_capability('local/edguidance:view', $context);
         $owned = $DB->record_exists('local_edguidance', ['id' => $itemid, 'cmid' => $cm->id]);
     } else if ($context->contextlevel == CONTEXT_COURSE) {
-        // A draft, only ever seen by whoever is writing it.
         require_login($course);
-        require_capability('local/edguidance:manage', $context);
-        $owned = $DB->record_exists('local_edguidance', ['id' => $itemid, 'cmid' => 0, 'courseid' => $course->id]);
+        $row = $DB->get_record('local_edguidance', ['id' => $itemid, 'cmid' => 0, 'courseid' => $course->id], 'id, sectionid');
+        // A section's block is read like any other. A draft is only ever seen by whoever is writing it.
+        require_capability($row && $row->sectionid ? 'local/edguidance:view' : 'local/edguidance:manage', $context);
+        $owned = (bool)$row;
     } else {
         return false;
     }

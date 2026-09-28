@@ -31,8 +31,9 @@ use local_edguidance\presets;
  * shows the editor. The editor is always pre-filled with whatever the block shows now, so turning
  * a preset block into an editable copy is a single change of the select.
  *
- * Arguments: contextid (the editor's context), and optionally key (the block being edited) and
- * startslot (a preset to copy into the editor for a new block).
+ * Arguments: contextid (the editor's context), and optionally sectionid (the section whose summary
+ * is being edited, in a course context), key (the block being edited) and startslot (a preset to
+ * copy into the editor for a new block).
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -40,16 +41,26 @@ use local_edguidance\presets;
  */
 class embed_form extends dynamic_form {
     /**
-     * The editor's context: an activity, or the course while an activity is being added.
+     * The editor's context: an activity, or the course for a section summary or while an activity
+     * is being added.
      *
      * @return \context
      */
     protected function get_context_for_dynamic_submission(): \context {
         $context = \context::instance_by_id($this->optional_param('contextid', 0, PARAM_INT));
-        // Throws for any context a block cannot belong to.
-        api::embed_target($context);
+        // Throws for any context a block cannot belong to, or a section not in the course.
+        api::embed_target($context, $this->get_sectionid());
 
         return $context;
+    }
+
+    /**
+     * The section whose summary is being edited, or 0.
+     *
+     * @return int
+     */
+    protected function get_sectionid(): int {
+        return $this->optional_param('sectionid', 0, PARAM_INT);
     }
 
     /**
@@ -77,6 +88,9 @@ class embed_form extends dynamic_form {
 
         $mform->addElement('hidden', 'contextid');
         $mform->setType('contextid', PARAM_INT);
+
+        $mform->addElement('hidden', 'sectionid');
+        $mform->setType('sectionid', PARAM_INT);
 
         $mform->addElement('hidden', 'key');
         $mform->setType('key', PARAM_ALPHANUM);
@@ -150,7 +164,7 @@ class embed_form extends dynamic_form {
         $key = $this->optional_param('key', '', PARAM_ALPHANUM);
         $startslot = $this->optional_param('startslot', 0, PARAM_INT);
 
-        $row = $key !== '' ? api::get_embed($context, $key) : null;
+        $row = $key !== '' ? api::get_embed($context, $key, $this->get_sectionid()) : null;
 
         $source = 0;
         $text = '';
@@ -186,6 +200,7 @@ class embed_form extends dynamic_form {
 
         $this->set_data([
             'contextid' => $context->id,
+            'sectionid' => $this->get_sectionid(),
             'key' => $row ? $row->embedkey : '',
             'source' => $source,
             'guidance_editor' => $data->guidance_editor,
@@ -206,7 +221,8 @@ class embed_form extends dynamic_form {
             $context,
             $data->key !== '' ? $data->key : null,
             $source,
-            $source > 0 ? null : $data->guidance_editor
+            $source > 0 ? null : $data->guidance_editor,
+            $this->get_sectionid()
         );
 
         return ['key' => $key];

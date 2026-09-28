@@ -58,3 +58,19 @@ Feature: Teacher guidance in Snap activity cards
     And I should see "Course 1" in the "h1" "css_element"
     And I click on "Review teacher guidance for this activity" "button" in the "//li[contains(@class, 'modtype_page')]" "xpath_element"
     And I should see "Walk through this together."
+
+  @javascript
+  Scenario: Guidance in a section summary in Snap, dismissed and brought back
+    Given the following "local_edguidance > section blocks" exist:
+      | course | section | embedkey         | guidance                          | summary                                                                                     |
+      | C1     | 0       | cccccccccccccccc | <p>Introduce yourself first.</p> | <p>Welcome all.</p><div class="edguidance-embed" data-edguidance="cccccccccccccccc"></div> |
+    When I am on the "Course 1" course page logged in as teacher1
+    Then I should see "Welcome all."
+    And I should see "Introduce yourself first."
+    And I click on "Dismiss" "button" in the ".summary" "css_element"
+    And I should not see "Introduce yourself first."
+    And I click on "Review teacher guidance for this section" "button"
+    And I should see "Introduce yourself first."
+    And I am on the "Course 1" course page logged in as student1
+    And I should see "Welcome all."
+    And I should not see "Introduce yourself first."

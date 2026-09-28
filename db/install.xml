@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/edguidance/db" VERSION="20260925" COMMENT="XMLDB file for Moodle local_edguidance"
+<XMLDB PATH="local/edguidance/db" VERSION="20260928" COMMENT="XMLDB file for Moodle local_edguidance"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -8,8 +8,9 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The course. Also how a draft is found when its activity is saved."/>
-        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course module whose text carries the token. 0 for a draft, made while the activity was still being added and had no id."/>
-        <FIELD NAME="embedkey" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="Random hex matching the token's data-edguidance attribute. Never remapped: the host text carries it through backup and restore unchanged."/>
+        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course module whose text carries the token. 0 for a section's block, and for a draft, made while the activity was still being added and had no id."/>
+        <FIELD NAME="sectionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course section whose summary carries the token, with cmid 0. 0 for an activity's block or a draft."/>
+        <FIELD NAME="embedkey" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="Random hex matching the token's data-edguidance attribute. Unique per activity, and per course among sections and drafts. Carried through backup and restore unchanged, except where a restored section's key is already taken in its course."/>
         <FIELD NAME="introorder" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 if the token is not in the activity description (a chapter or page block). n if it is the nth token there. Recorded when the activity is saved, so the course page can find description guidance without reading every module's intro."/>
         <FIELD NAME="presetslot" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 for guidance with its own text. 1..10 for guidance that uses that site preset, which is read live on every render. Not remapped by restore: it names a site setting, not something in the course."/>
         <FIELD NAME="guidance" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The block's own text. For a block using a preset, a snapshot taken when it was linked, shown only if the preset slot is later emptied."/>
@@ -22,8 +23,7 @@
         <KEY NAME="courseid" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="cmid-embedkey" UNIQUE="true" FIELDS="cmid, embedkey"/>
-        <INDEX NAME="courseid-cmid" UNIQUE="false" FIELDS="courseid, cmid"/>
+        <INDEX NAME="courseid-cmid-embedkey" UNIQUE="true" FIELDS="courseid, cmid, embedkey"/>
       </INDEXES>
     </TABLE>
   </TABLES>

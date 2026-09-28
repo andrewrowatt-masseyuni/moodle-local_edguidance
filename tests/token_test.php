@@ -71,4 +71,19 @@ final class token_test extends \advanced_testcase {
         $this->assertMatchesRegularExpression('/^[0-9a-f]{16}$/', $key);
         $this->assertSame([$key], token::keys_in(token::html($key)));
     }
+
+    /**
+     * Rekeying changes only the keys asked for, and leaves each token's markup as it was.
+     */
+    public function test_rekey(): void {
+        $text = '<p>A</p><div data-edguidance="0123456789abcdef" class="edguidance-embed">&nbsp;</div>' .
+            "<div class='edguidance-embed' data-edguidance='fedcba9876543210'></div>";
+
+        $this->assertSame(
+            '<p>A</p><div data-edguidance="aaaaaaaaaaaaaaaa" class="edguidance-embed">&nbsp;</div>' .
+                "<div class='edguidance-embed' data-edguidance='fedcba9876543210'></div>",
+            token::rekey($text, ['0123456789abcdef' => 'aaaaaaaaaaaaaaaa'])
+        );
+        $this->assertSame($text, token::rekey($text, []));
+    }
 }

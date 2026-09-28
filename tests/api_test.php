@@ -141,18 +141,32 @@ final class api_test extends \advanced_testcase {
     }
 
     /**
-     * Only an activity, or a course while an activity is being added, can hold a block.
+     * Only an activity, a section, or a course while an activity is being added, can hold a block.
      */
     public function test_embed_target(): void {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
         $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $section = get_fast_modinfo($course)->get_section_info(1);
+        $coursecontext = \context_course::instance($course->id);
 
-        $this->assertSame([(int)$course->id, (int)$page->cmid], api::embed_target(\context_module::instance($page->cmid)));
-        $this->assertSame([(int)$course->id, 0], api::embed_target(\context_course::instance($course->id)));
+        $this->assertSame([(int)$course->id, (int)$page->cmid, 0], api::embed_target(\context_module::instance($page->cmid)));
+        $this->assertSame([(int)$course->id, 0, 0], api::embed_target($coursecontext));
+        $this->assertSame([(int)$course->id, 0, (int)$section->id], api::embed_target($coursecontext, (int)$section->id));
 
         $this->expectException(\invalid_parameter_exception::class);
         api::embed_target(\context_system::instance());
+    }
+
+    /**
+     * The front page is a course, but not one guidance belongs in: SITEID is a string, so this
+     * pins that the comparison with it is not a strict one against an int that never matches.
+     */
+    public function test_front_page_is_refused(): void {
+        $this->resetAfterTest();
+
+        $this->expectException(\invalid_parameter_exception::class);
+        api::embed_target(\context_course::instance(SITEID));
     }
 
     /**
