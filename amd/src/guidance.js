@@ -14,10 +14,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Dismissing and restoring teacher guidance.
+ * Dismissing teacher guidance, and undoing that.
  *
- * A dismissed block collapses to a small help icon rather than disappearing, and clicking the icon
- * restores it. Nothing is ever lost, so there is no page for finding dismissed guidance again.
+ * Dismissing does not remove the block from the page it was clicked on. The server has already
+ * recorded the choice, so the block is gone on the next page load; removing it at once would make
+ * an accidental click hard to recover from. Instead the guidance is swapped for a line saying what
+ * will happen, with an undo. After that, the dismissed guidance page is the way back.
  *
  * Every listener is delegated from the document, once per page, so blocks that arrive after the
  * page has loaded - a course page card re-rendered over AJAX - work without re-initialising.
@@ -27,24 +29,22 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import 'theme_boost/popover';
-import $ from 'jquery';
 import {call as fetchMany} from 'core/ajax';
 import Notification from 'core/notification';
 import Pending from 'core/pending';
 
 const SELECTORS = {
     BLOCK: '[data-region="edguidance"]',
-    FULL: '[data-region="edguidance-full"]',
-    COLLAPSED: '[data-region="edguidance-collapsed"]',
+    LIVE: '[data-region="edguidance-live"]',
+    DISMISSED: '[data-region="edguidance-dismissed"]',
     DISMISS: '[data-action="edguidance-dismiss"]',
-    RESTORE: '[data-action="edguidance-restore"]',
+    UNDO: '[data-action="edguidance-undo"]',
 };
 
 let initialised = false;
 
 /**
- * Record a dismissal or a restore against the current user.
+ * Record a dismissal or an undo against the current user.
  *
  * @param {number} guidanceid The block.
  * @param {boolean} dismissed Whether it should be dismissed.
@@ -56,55 +56,21 @@ const setDismissed = (guidanceid, dismissed) => fetchMany([{
 }])[0];
 
 /**
- * Show the "Review teacher guidance" popover on a collapsed block's icon.
+ * Swap a block between its guidance and the "you have dismissed this" confirmation.
  *
- * Deliberately not data-toggle="popover": theme_boost/loader shows every such popover on click,
- * which would fight clicking the icon to restore. This one is manual - shown on hover and focus,
- * hidden on leaving, and never on click. The popover is created the first time it is needed.
- *
- * @param {HTMLElement} button The icon.
- */
-const showPopover = (button) => {
-    if (!button.dataset.edguidancePopover) {
-        $(button).popover({
-            trigger: 'manual',
-            placement: 'top',
-            container: 'body',
-            content: button.getAttribute('aria-label'),
-        });
-        button.dataset.edguidancePopover = '1';
-    }
-    $(button).popover('show');
-};
-
-/**
- * Hide the popover, if it was ever shown.
- *
- * @param {HTMLElement} button The icon.
- */
-const hidePopover = (button) => {
-    if (button.dataset.edguidancePopover) {
-        $(button).popover('hide');
-    }
-};
-
-/**
- * Swap a block between its guidance and its help icon.
+ * The Dismiss button is one of the live regions, so there is no state in which the block is
+ * dismissed but still offering to dismiss itself.
  *
  * @param {HTMLElement} block The block root.
- * @param {boolean} dismissed Whether to show the icon.
+ * @param {boolean} dismissed Whether to show the confirmation.
  */
 const showState = (block, dismissed) => {
-    const full = block.querySelector(SELECTORS.FULL);
-    const collapsed = block.querySelector(SELECTORS.COLLAPSED);
-
-    full?.toggleAttribute('hidden', dismissed);
-    collapsed?.toggleAttribute('hidden', !dismissed);
+    block.querySelectorAll(SELECTORS.LIVE).forEach((live) => live.toggleAttribute('hidden', dismissed));
+    block.querySelector(SELECTORS.DISMISSED)?.toggleAttribute('hidden', !dismissed);
     block.classList.toggle('edguidance-is-dismissed', dismissed);
 
     // Keep a keyboard user where they were, rather than dropping focus on the element just hidden.
-    const target = dismissed ? collapsed : full?.querySelector(SELECTORS.DISMISS);
-    target?.focus();
+    block.querySelector(dismissed ? SELECTORS.UNDO : SELECTORS.DISMISS)?.focus();
 };
 
 /**
@@ -131,29 +97,6 @@ const apply = async(block, dismissed) => {
 };
 
 /**
- * Show or hide the popover for a hover or focus event on a collapsed block's icon.
- *
- * @param {Event} event The mouseover, mouseout, focusin or focusout event.
- * @param {boolean} show Whether this event shows the popover.
- */
-const popoverFromEvent = (event, show) => {
-    const button = event.target instanceof Element ? event.target.closest(SELECTORS.RESTORE) : null;
-    if (!button) {
-        return;
-    }
-    // Moving between the icon and its own children is not leaving it.
-    if (!show && event.relatedTarget instanceof Node && button.contains(event.relatedTarget)) {
-        return;
-    }
-
-    if (show) {
-        showPopover(button);
-    } else {
-        hidePopover(button);
-    }
-};
-
-/**
  * Wire up the page.
  */
 export const init = () => {
@@ -167,7 +110,7 @@ export const init = () => {
     // the activity.
     document.addEventListener('click', (event) => {
         const control = event.target instanceof Element
-            ? event.target.closest(`${SELECTORS.DISMISS}, ${SELECTORS.RESTORE}`)
+            ? event.target.closest(`${SELECTORS.DISMISS}, ${SELECTORS.UNDO}`)
             : null;
         const block = control?.closest(SELECTORS.BLOCK);
         if (!block) {
@@ -177,20 +120,6 @@ export const init = () => {
         event.preventDefault();
         event.stopPropagation();
 
-        const restoring = control.matches(SELECTORS.RESTORE);
-        if (restoring) {
-            hidePopover(control);
-        }
-        apply(block, !restoring);
+        apply(block, control.matches(SELECTORS.DISMISS));
     }, true);
-
-    document.addEventListener('mouseover', (event) => popoverFromEvent(event, true));
-    document.addEventListener('mouseout', (event) => popoverFromEvent(event, false));
-    document.addEventListener('focusin', (event) => popoverFromEvent(event, true));
-    document.addEventListener('focusout', (event) => popoverFromEvent(event, false));
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            popoverFromEvent(event, false);
-        }
-    });
 };

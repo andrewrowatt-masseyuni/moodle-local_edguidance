@@ -24,6 +24,7 @@
 
 use local_edguidance\api;
 use local_edguidance\local\card_injector;
+use local_edguidance\output\dismissed_page;
 
 /**
  * After any activity is saved through its settings form, record the guidance in its description.
@@ -79,6 +80,35 @@ function local_edguidance_override_webservice_execution($externalfunctioninfo, $
     card_injector::prime_for_webservice((string)$externalfunctioninfo->name, (array)$params);
 
     return false;
+}
+
+/**
+ * Link the dismissed guidance page from the course navigation, for users with something to restore.
+ *
+ * Dismissed guidance leaves no trace on the page, so without this there would be no way back; but
+ * an always-present link to an always-empty page is just noise.
+ *
+ * @param navigation_node $navigation The course navigation node.
+ * @param stdClass $course The course.
+ * @param context_course $context The course context.
+ */
+function local_edguidance_extend_navigation_course($navigation, $course, $context) {
+    if ((int)$course->id === (int)SITEID || !has_capability('local/edguidance:view', $context)) {
+        return;
+    }
+
+    if (!dismissed_page::has_dismissed((int)$course->id)) {
+        return;
+    }
+
+    $navigation->add(
+        get_string('dismissed', 'local_edguidance'),
+        new moodle_url('/local/edguidance/dismissed.php', ['course' => (int)$course->id]),
+        navigation_node::TYPE_SETTING,
+        null,
+        'edguidancedismissed',
+        new pix_icon('i/hide', '')
+    );
 }
 
 /**

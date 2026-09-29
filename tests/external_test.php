@@ -223,11 +223,12 @@ final class external_test extends \advanced_testcase {
         $previews = external_api::clean_returnvalue(get_previews::execute_returns(), $previews);
 
         $this->assertSame([$own->embedkey, $preset->embedkey, $unknown], array_column($previews, 'key'));
+        $this->assertSame([false, false, false], array_column($previews, 'dismissed'));
 
         $this->assertStringContainsString('Check the due date before releasing this.', $previews[0]['html']);
         $this->assertStringContainsString('edguidance-card', $previews[0]['html']);
         $this->assertStringNotContainsString('edguidance-dismiss', $previews[0]['html']);
-        $this->assertStringNotContainsString('edguidance-restore', $previews[0]['html']);
+        $this->assertStringNotContainsString('edguidance-undo', $previews[0]['html']);
 
         // The preset as it stands, not the snapshot.
         $this->assertStringContainsString('Check the dates.', $previews[1]['html']);
@@ -237,19 +238,29 @@ final class external_test extends \advanced_testcase {
     }
 
     /**
-     * A block the teacher has dismissed is previewed in full: they are editing it.
+     * A block the teacher has dismissed previews in full, flagged, for the editor to hide unless
+     * they ask to see it. Dismissing is personal, so it is not flagged for a colleague.
      */
-    public function test_get_previews_ignores_dismissal(): void {
+    public function test_get_previews_flag_a_dismissed_block(): void {
         $this->resetAfterTest();
         [$course, $book, $row] = $this->make_block();
+        $contextid = \context_module::instance($book->cmid)->id;
+        $unknown = token::new_key();
         $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
         dismissed::set((int)$row->id, true);
 
-        $html = get_previews::execute(\context_module::instance($book->cmid)->id, [$row->embedkey])[0]['html'];
+        $previews = get_previews::execute($contextid, [$row->embedkey, $unknown]);
+        $previews = external_api::clean_returnvalue(get_previews::execute_returns(), $previews);
 
-        $this->assertStringNotContainsString('edguidance-is-dismissed', $html);
-        $this->assertStringNotContainsString('hidden', $html);
-        $this->assertStringContainsString('Check the due date before releasing this.', $html);
+        $this->assertTrue($previews[0]['dismissed']);
+        $this->assertStringContainsString('Check the due date before releasing this.', $previews[0]['html']);
+        $this->assertStringNotContainsString('edguidance-undo', $previews[0]['html']);
+        // A token with no block here has nothing to have dismissed.
+        $this->assertFalse($previews[1]['dismissed']);
+
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $this->assertFalse(get_previews::execute($contextid, [$row->embedkey])[0]['dismissed']);
     }
 
     /**

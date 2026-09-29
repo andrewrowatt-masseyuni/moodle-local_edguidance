@@ -37,6 +37,7 @@ final class embed_form_test extends \advanced_testcase {
     protected function setUp(): void {
         parent::setUp();
         guidance::reset_cache();
+        dismissed::reset_cache();
     }
 
     /**
@@ -189,6 +190,45 @@ final class embed_form_test extends \advanced_testcase {
         $html = $this->open(['contextid' => $context->id, 'key' => $row->embedkey]);
 
         $this->assertMatchesRegularExpression('/<option value="3"\s+selected/', $html);
+    }
+
+    /**
+     * A block this teacher has dismissed opens with a notice saying so, carrying the block's id for
+     * the editor's Restore button. Dismissing is personal, so a colleague gets no notice, and editing
+     * does not undismiss it.
+     */
+    public function test_editing_a_dismissed_block_says_so(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        [$course, $context] = $this->setup_book();
+        $row = $this->getDataGenerator()->get_plugin_generator('local_edguidance')->create_block(['cmid' => $context->instanceid]);
+        $notice = 'data-region="edguidance-dismissednotice"';
+
+        $this->assertStringNotContainsString($notice, $this->open(['contextid' => $context->id, 'key' => $row->embedkey]));
+
+        dismissed::set((int)$row->id, true);
+        $html = $this->open(['contextid' => $context->id, 'key' => $row->embedkey]);
+        $this->assertStringContainsString($notice, $html);
+        $this->assertStringContainsString('data-guidanceid="' . $row->id . '"', $html);
+        // Not for a new block, whatever else this teacher has dismissed.
+        $this->assertStringNotContainsString($notice, $this->open(['contextid' => $context->id]));
+
+        $this->submit([
+            'contextid' => $context->id,
+            'key' => $row->embedkey,
+            'source' => 0,
+            'guidance_editor' => [
+                'text' => '<p>Edited.</p>',
+                'format' => FORMAT_HTML,
+                'itemid' => file_get_unused_draft_itemid(),
+            ],
+        ]);
+        $this->assertStringContainsString('Edited.', $DB->get_field('local_edguidance', 'guidance', ['id' => $row->id]));
+        $this->assertTrue(dismissed::is_dismissed((int)$row->id));
+
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->assertStringNotContainsString($notice, $this->open(['contextid' => $context->id, 'key' => $row->embedkey]));
     }
 
     /**

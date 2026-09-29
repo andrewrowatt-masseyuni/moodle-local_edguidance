@@ -59,6 +59,13 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
 * **Guidance text must never go into host text.** Only the token does. Anything that writes guidance
   HTML into a description, chapter or page reopens the leaks the README lists.
 * **The rendered block must never contain `data-edguidance=`** - lesson filters some text twice.
+* **Dismissal is decided in `output\block` for the page.** `render_row()` returns `''` for a
+  dismissed block, and the filter and `card_injector` both go through it; do not check it anywhere
+  else, and do not render a dismissed block client-side. The one exception is the editor:
+  `render_preview()` renders it in full, `get_previews` flags it, and `tiny_edguidance/previews`
+  hides it unless the teacher chooses *Show guidance marked as read*.
+* **"Dismissed" in code is "Mark as read" in the interface.** Keep identifiers as they are; only
+  strings say *read*.
 * **The editor's preview lives in a shadow root on the token, never inside it.** Anything inside a
   token is saved into host text, and `token::PATTERN` stops at the first `</div>`, so the filter
   would strip only the start of it and students would see the rest.

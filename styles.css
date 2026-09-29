@@ -74,6 +74,14 @@ div.edguidance-embed[data-edguidance] {
     color: #0f7b8f;
 }
 
+/* The tick, sized to the label rather than to the theme's 16px icon box. */
+.edguidance .edguidance-dismiss .icon {
+    width: auto;
+    height: auto;
+    margin-right: 0.25rem;
+    font-size: inherit;
+}
+
 .edguidance-body {
     font-size: 0.875rem;
     line-height: 1.55;
@@ -91,19 +99,38 @@ div.edguidance-embed[data-edguidance] {
     font-size: 0.8rem;
 }
 
-/* Collapsed: just the help icon, in the guidance teal. */
-.edguidance.edguidance-is-dismissed {
-    margin: 0.25rem 0;
-    line-height: 1;
+/* The rule mutes once the block has been dismissed, and before the page is next loaded. */
+.edguidance.edguidance-is-dismissed .edguidance-card {
+    border-left-color: #b6c9cd;
 }
 
-.edguidance .edguidance-restore {
-    color: #2f8a9b;
-    line-height: 1;
+/*
+ * The dismissed confirmation. A check marks the change; the sentence flows with the inline undo
+ * button as core's own inline actions do.
+ */
+.edguidance-confirm {
+    position: relative;
+    padding: 0.125rem 0 0.125rem 1.375rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: #6f858b;
 }
 
-.edguidance .edguidance-restore .icon {
-    margin: 0;
+.edguidance-confirm::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: #7c9a83;
+    position: absolute;
+    left: 0;
+    top: 0.2rem;
+}
+
+.edguidance .edguidance-undo {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f7b8f;
 }
 
 /* The preview of a preset in the embed form, dressed as the block it will become. */
@@ -116,8 +143,7 @@ div.edguidance-embed[data-edguidance] {
 /*
  * Boost: description guidance placed in the card's afterlink row (classes/local/card_injector.php),
  * inside a .no-overflow wrapper as a shown description would be. Core lays that row out as a centred
- * flex line for a file size or a badge; guidance needs the full width. Once only the collapsed icon
- * is left, the row's rule and spacing are dropped so the icon does not sit alone under a divider.
+ * flex line for a file size or a badge; guidance needs the full width.
  */
 .activity-item .activity-afterlink:has(> .no-overflow > .edguidance) {
     flex-wrap: wrap;
@@ -125,12 +151,6 @@ div.edguidance-embed[data-edguidance] {
 
 .activity-item .activity-afterlink > .no-overflow:has(> .edguidance) {
     flex: 1 1 100%;
-}
-
-.activity-item .activity-afterlink:has(> .no-overflow:only-child > .edguidance.edguidance-is-dismissed:only-child) {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: 0;
 }
 
 /*
@@ -148,4 +168,9 @@ div.edguidance-embed[data-edguidance] {
  */
 .snap-asset-meta .edguidance {
     line-height: normal;
+}
+
+/* The dismissed guidance page (dismissed.php): a short excerpt of each block, beside its restore button. */
+.edguidance-dismissedlist .edguidance-excerpt {
+    color: #40626a;
 }

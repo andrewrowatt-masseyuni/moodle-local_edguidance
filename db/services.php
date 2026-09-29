@@ -41,7 +41,7 @@ $functions = [
     ],
     'local_edguidance_set_dismissed' => [
         'classname' => 'local_edguidance\external\set_dismissed',
-        'description' => 'Dismiss or restore a guidance block for the current user.',
+        'description' => 'Mark a guidance block as read, or restore it, for the current user.',
         'type' => 'write',
         'ajax' => true,
     ],

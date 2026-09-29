@@ -18,6 +18,7 @@ namespace local_edguidance\form;
 
 use core_form\dynamic_form;
 use local_edguidance\api;
+use local_edguidance\dismissed;
 use local_edguidance\presets;
 
 /**
@@ -35,11 +36,17 @@ use local_edguidance\presets;
  * is being edited, in a course context), key (the block being edited) and startslot (a preset to
  * copy into the editor for a new block).
  *
+ * A block the current user has dismissed opens with a notice saying so, which also carries the
+ * block's id: tiny_edguidance offers to restore the block when, and only when, the notice is there.
+ *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class embed_form extends dynamic_form {
+    /** @var \stdClass|null|false The block being edited, null for none, or false before it is looked up. */
+    protected $row = false;
+
     /**
      * The editor's context: an activity, or the course for a section summary or while an activity
      * is being added.
@@ -61,6 +68,22 @@ class embed_form extends dynamic_form {
      */
     protected function get_sectionid(): int {
         return $this->optional_param('sectionid', 0, PARAM_INT);
+    }
+
+    /**
+     * The block being edited, if there is one here.
+     *
+     * @return \stdClass|null
+     */
+    protected function get_row(): ?\stdClass {
+        if ($this->row === false) {
+            $key = $this->optional_param('key', '', PARAM_ALPHANUM);
+            $this->row = $key !== ''
+                ? api::get_embed($this->get_context_for_dynamic_submission(), $key, $this->get_sectionid())
+                : null;
+        }
+
+        return $this->row;
     }
 
     /**
@@ -94,6 +117,16 @@ class embed_form extends dynamic_form {
 
         $mform->addElement('hidden', 'key');
         $mform->setType('key', PARAM_ALPHANUM);
+
+        // Editing is not undismissing: the block stays out of this teacher's way until they say so.
+        $row = $this->get_row();
+        if ($row && dismissed::is_dismissed((int)$row->id)) {
+            $mform->addElement('html', \html_writer::div(
+                get_string('formdismissed', 'local_edguidance'),
+                'alert alert-info',
+                ['data-region' => 'edguidance-dismissednotice', 'data-guidanceid' => (int)$row->id]
+            ));
+        }
 
         $presets = presets::all();
 
@@ -161,10 +194,9 @@ class embed_form extends dynamic_form {
      */
     public function set_data_for_dynamic_submission(): void {
         $context = $this->get_context_for_dynamic_submission();
-        $key = $this->optional_param('key', '', PARAM_ALPHANUM);
         $startslot = $this->optional_param('startslot', 0, PARAM_INT);
 
-        $row = $key !== '' ? api::get_embed($context, $key, $this->get_sectionid()) : null;
+        $row = $this->get_row();
 
         $source = 0;
         $text = '';

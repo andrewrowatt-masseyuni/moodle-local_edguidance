@@ -22,6 +22,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_edguidance\api;
+use local_edguidance\dismissed;
 use local_edguidance\output\block;
 
 /**
@@ -34,6 +35,9 @@ use local_edguidance\output\block;
  * api::get_embeds() - so a token copied in from elsewhere previews as the notice the filter will
  * show there, and a draft on the "add an activity" form previews at all. That last is why this
  * needs manage rather than view: drafts are only ever seen by whoever is writing them.
+ *
+ * A block the current user has dismissed is rendered in full and flagged. The editor hides it unless
+ * the teacher asks to see dismissed guidance, which it can then do without asking again.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -83,7 +87,12 @@ class get_previews extends external_api {
 
         $previews = [];
         foreach ($keys as $key) {
-            $previews[] = ['key' => $key, 'html' => block::render_preview($rows[$key] ?? null)];
+            $row = $rows[$key] ?? null;
+            $previews[] = [
+                'key' => $key,
+                'html' => block::render_preview($row),
+                'dismissed' => $row && dismissed::is_dismissed((int)$row->id),
+            ];
         }
 
         return $previews;
@@ -99,6 +108,7 @@ class get_previews extends external_api {
             new external_single_structure([
                 'key' => new external_value(PARAM_ALPHANUM, 'The block\'s key'),
                 'html' => new external_value(PARAM_RAW, 'The block as the page shows it, or a notice saying why it will not show'),
+                'dismissed' => new external_value(PARAM_BOOL, 'Whether the current user has dismissed the block'),
             ])
         );
     }

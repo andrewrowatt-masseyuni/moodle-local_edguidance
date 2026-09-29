@@ -41,24 +41,48 @@ Feature: Teacher guidance in activity cards
     And I should not see "Teacher guidance"
 
   @javascript
-  Scenario: Dismissed guidance collapses to an icon that restores it
+  Scenario: Dismissing guidance can be undone straight away
     Given I am on the "Course 1" course page logged in as teacher1
-    When I click on "Dismiss" "button" in the "Hidden page" "activity"
-    Then I should not see "Set the release date first."
-    And "Review teacher guidance for this activity" "button" should exist in the "Hidden page" "activity"
-    # Dismissal is personal and remembered.
-    And I reload the page
+    When I click on "Mark as read" "button" in the "Hidden page" "activity"
+    Then I should see "You have marked this teacher guidance as read." in the "Hidden page" "activity"
+    And I should see "When you revisit this page, it will be removed." in the "Hidden page" "activity"
     And I should not see "Set the release date first."
-    And I should see "Check the reading list is current."
-    And I click on "Review teacher guidance for this activity" "button" in the "Hidden page" "activity"
+    And I click on "Undo" "button" in the "Hidden page" "activity"
     And I should see "Set the release date first." in the "Hidden page" "activity"
+    And I should not see "When you revisit this page, it will be removed."
     And I reload the page
     And I should see "Set the release date first." in the "Hidden page" "activity"
 
   @javascript
+  Scenario: Dismissed guidance is gone on the next page load, and can be restored
+    Given I am on the "Course 1" course page logged in as teacher1
+    When I click on "Mark as read" "button" in the "Hidden page" "activity"
+    And I click on "Mark as read" "button" in the "Shown page" "activity"
+    And I reload the page
+    # Nothing is left of it, not even the heading - and the description around it is untouched.
+    Then I should not see "Set the release date first."
+    And I should not see "Check the reading list is current."
+    And I should not see "Teacher guidance" in the "region-main" "region"
+    And I should see "Read this first." in the "Shown page" "activity"
+    And I am on the "Course 1" "local_edguidance > dismissed guidance" page
+    And I should see "Set the release date first."
+    And I should see "Check the reading list is current."
+    And I click on "a[aria-label='Restore teacher guidance in Hidden page']" "css_element"
+    And I should see "The teacher guidance has been restored."
+    And I should not see "Set the release date first."
+    And I should see "Check the reading list is current."
+    And I am on the "Course 1" course page
+    And I should see "Set the release date first." in the "Hidden page" "activity"
+    And I should not see "Check the reading list is current."
+
+  Scenario: The dismissed guidance page says when there is nothing to restore
+    When I am on the "Course 1" "local_edguidance > dismissed guidance" page logged in as teacher1
+    Then I should see "You have not marked any teacher guidance as read in this course."
+
+  @javascript
   Scenario: One teacher dismissing guidance does not hide it from another
     Given I am on the "Course 1" course page logged in as teacher1
-    And I click on "Dismiss" "button" in the "Shown page" "activity"
+    And I click on "Mark as read" "button" in the "Shown page" "activity"
     When I am on the "Course 1" course page logged in as teacher2
     Then I should see "Check the reading list is current." in the "Shown page" "activity"
 

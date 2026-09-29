@@ -4,10 +4,10 @@ Shows guidance to teaching staff, embedded where it is needed: in an activity's 
 in its activity card on the course page), in a book chapter, in a lesson page, or in a section
 summary. Students never see it.
 
-Each teacher can dismiss a piece of guidance they have finished with. It collapses to a small help
-icon whose popover reads "Review teacher guidance for this activity" (or "for this section");
-clicking the icon brings the guidance back. Dismissing is personal and never changes what a
-colleague sees.
+Each teacher can mark a piece of guidance as read once they have finished with it. From the next
+page load it is gone for them - from the page and from the editor - until they restore it from
+**Teacher guidance marked as read** in the course navigation. Marking guidance as read is personal and
+never changes what a colleague sees.
 
 Administrators can keep up to ten site-wide **guidance presets**. A teacher can use a preset as it
 stands - it cannot be edited, and it updates everywhere the moment the administrator changes it - or
@@ -77,11 +77,28 @@ use the **Teacher guidance** button on the editor toolbar (also under **Insert**
 * **Start with blank** - opens the guidance editor empty.
 
 The guidance appears in the editor as it will on the page, with *Click to edit* where the page has
-*Dismiss*. Click it (or choose **Edit this guidance** with the cursor on it) to change it, to switch
-it to a different preset, or to turn a linked preset into an editable copy by choosing *My own
-text*. Delete it as you would any other block of text to remove the guidance. To move it, hover
-over it and use the up and down arrows at its bottom right, which move it past one paragraph (or
-other block) at a time.
+*Mark as read*. Guidance you have marked as read does not appear at all, as on the page, until you
+choose **Show guidance marked as read** from the same toolbar button: then it appears in full over a
+light hatch, marked *Marked as read - click to edit*, for as long as you stay in that editor. Click it (or choose
+**Edit this guidance** with the cursor on it) to change it, to switch it to a different preset, or
+to turn a linked preset into an editable copy by choosing *My own text*. The same form offers
+**Delete**, which asks first - once the text is saved the guidance is gone for every teacher, not
+just for you - and, for guidance you have marked as read, **Restore**. Deleting it as you would any other
+block of text does the same as *Delete*, without asking. To move it, hover over it and use the up
+and down arrows at its bottom right, which move it past one paragraph (or other block) at a time.
+
+### Marking as read and restoring
+
+**Mark as read**, with a tick, at the top right of the guidance, replaces it with a line saying it
+will be gone when you revisit the page, and an **Undo**. After that, nothing of it is shown to you
+anywhere: not on the page, not in the activity card, and not in the editor unless you choose *Show
+guidance marked as read* there.
+
+**Teacher guidance marked as read**, in the course navigation (under *More* in Boost), lists what you
+have marked as read in the course, each with a short excerpt and where it is, and a **Restore**
+button. The
+link only appears while there is something to restore. You can also restore guidance from its form
+in the editor.
 
 ### Where it shows
 
@@ -272,8 +289,14 @@ while each section step runs, and sorts the keys out itself (see *Backup and res
 ### The preview in the editor
 
 `tiny_edguidance` shows each token as the page will show its block: the same template, rendered by
-`block::render_preview()` (no buttons, and never collapsed, whoever has dismissed it) and fetched for
-every token in the text at once from `local_edguidance_get_previews`.
+`block::render_preview()` (no buttons) and fetched for every token in the text at once from
+`local_edguidance_get_previews`, which also flags each block the teacher has dismissed. The editor
+shows a flagged block as nothing at all, as the page does, until the teacher chooses *Show guidance
+marked as read* from the menu; that item is offered only while such a block is hidden. From then on,
+in that editor only, flagged blocks show in full over a hatch, with *Marked as read - click to edit*
+in the header. The choice is held in the editor's own state and never stored, so it lasts until the page is
+left, and there is deliberately no way to hide them again short of that. A hidden block takes no
+space, so it cannot be clicked: show it first to edit, restore or delete it.
 
 The preview is the guidance, so it must never be saved: it would go wherever the text goes (see
 *The token*). Worse, `token::PATTERN` matches a token only up to its first `</div>`, so the filter
@@ -310,6 +333,10 @@ that needs JavaScript, such as MathJax or a media player, does not start in the 
 
 ### Dismissing
 
+The interface calls this *Mark as read*. The code, the web service (`local_edguidance_set_dismissed`),
+the favourites item type and `dismissed.php` keep the name *dismissed*, so renaming the label changed
+no stored data and no API.
+
 Per user, per block, in `core_favourites` (component `local_edguidance`, item type `dismissed`,
 item id = the row id) in the user's own context - the same store `mod_ednote` used, for the same
 reasons: it is core's general "this user has flagged this item" store, with a privacy story and a
@@ -320,10 +347,35 @@ a preset, does not quietly un-dismiss it.
 `delete_favourite()` throws when there is nothing to delete, so a double click would otherwise be a
 500.
 
-Both states are rendered on the server (`templates/block.mustache`) and the server's dismissed state
-decides which starts hidden; `amd/src/guidance.js` only toggles them. The popover is created by hand
-with `trigger: 'manual'` rather than `data-toggle="popover"`, because `theme_boost/loader` shows every
-`data-toggle` popover on click, which would fight clicking the icon to restore.
+A dismissed block renders nothing. `block::render_row()` returns `''` for it - before resolving, so
+it costs no formatting - and every path to the page goes through that: the filter and
+`card_injector` alike. The filter's empty-text rule then drops a description that was nothing but
+that guidance, as it does for a student, and `card_injector` adds no afterlink at all. The editor is
+the exception, because a teacher can ask to see there what they have dismissed:
+`block::render_preview()` renders a dismissed block in full, `get_previews` flags it, and
+`tiny_edguidance` hides it unless asked (see *The preview in the editor*).
+
+So only a block that was not dismissed when the page loaded is ever rendered, and its template
+(`templates/block.mustache`) carries both states: the guidance, and the confirmation that replaces
+it once *Mark as read* is clicked, hidden until then. `amd/src/guidance.js` only toggles between them, and
+*Undo* is the same web service the other way. The block is not removed on the spot, because the
+server has already recorded the choice and an accidental click should be easy to take back; it is
+gone on the next load.
+
+With nothing left on the page, `dismissed.php` is the way back. `output\dismissed_page` lists the
+course's blocks the user has dismissed, sections' before their activities', in course order - only
+those they could see if restored (section and activity visible, `view` in the activity), because
+each row shows an excerpt of the guidance. `local_edguidance_extend_navigation_course()` links it
+only when that list is not empty, asking the cheap questions first (anything dismissed at all,
+anything dismissed in this course), since it runs on every course page. *Restore* is a plain link
+carrying a sesskey, so the page needs no JavaScript, and it checks nothing about the block: it only
+ever deletes the user's own flag.
+
+The guidance form (`form\embed_form`) also carries a notice, with the block's id, when the teacher has
+dismissed the block being edited; `tiny_edguidance` shows *Restore* in the form's footer only while
+that notice is there. Editing does not undismiss. The footer's *Delete* (after
+`core/notification`'s delete confirmation) removes the token from the text in one undo step, exactly
+as deleting it by hand does, so nothing is lost until the text is saved.
 
 Click handling is delegated from the document in the capture phase and stops there: a block can sit
 inside a card that is itself a link (Snap's resource cards), and dismissing must not open the
@@ -383,21 +435,28 @@ vendor/bin/phpunit --testsuite tiny_edguidance_testsuite
 php admin/tool/behat/cli/run.php --tags=@local_edguidance
 ```
 
-Behat covers card guidance with the description shown and hidden, in Boost and in Snap; dismiss and
-restore; per-teacher dismissal; a preset updating live; book chapters and lesson pages; section
-summaries, in Boost and in Snap; adding guidance with the editor button, in a chapter and a section
-summary; the editor's preview, as it is added and edited, with a check each time that the
-guidance is not in the text the editor would save; and moving guidance up and down in the editor.
+Behat covers card guidance with the description shown and hidden, in Boost and in Snap; dismiss,
+undo, and restore from the dismissed guidance page; per-teacher dismissal; a preset updating live;
+book chapters and lesson pages; section summaries, in Boost and in Snap; adding guidance with the
+editor button, in a chapter and a section summary; the editor's preview, as it is added and edited,
+with a check each time that the guidance is not in the text the editor would save; dismissed
+guidance hidden in the editor, shown hatched on request, and restored from its form; deleting
+guidance from its form; and moving guidance up and down in the editor.
 
-Three things to know when adding Behat coverage:
+Four things to know when adding Behat coverage:
 
 * `mod_book`'s generator makes chapters in `FORMAT_MOODLE`, which TinyMCE does not edit - Moodle
   quietly picks another editor and there is no button. Give chapters `contentformat` 1.
 * The `Insert > ...` menu step cannot reach a third menu level. Click the toolbar button and pick
   menu items by `[role^='menuitem'][aria-label='...']` instead, as `editor.feature` does.
 * The editor's preview and its move buttons are in a shadow root, which XPath cannot see into.
-  Use `tiny_edguidance`'s steps: *the "Content" TinyMCE editor should preview guidance "..."*,
-  *... should not save "..."* and *I move teacher guidance "up" in the "Content" TinyMCE editor*.
+  Use `tiny_edguidance`'s steps: *the "Content" TinyMCE editor should preview guidance "..."* (and
+  *should not preview*, and *should preview dismissed guidance* for the hatched kind), *... should
+  not save "..."* and *I move teacher guidance "up" in the "Content" TinyMCE editor*.
+* Open the dismissed guidance page with *I am on the "Course 1" "local_edguidance > dismissed
+  guidance" page*, not through the navigation, whose overflow into *More* depends on window size and
+  theme. On that page an activity's name is also in the course index, so a `"list_item"` scope finds
+  the index first; click *Restore* by its label, `a[aria-label='Restore teacher guidance in ...']`.
 
 Static caches (`guidance`, `dismissed`, `card_injector`) are keyed on ids PHPUnit reuses between
 tests; reset them in `setUp()`.

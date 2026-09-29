@@ -22,8 +22,8 @@ use core_favourites\service_factory;
  * Which guidance blocks the current user has dismissed.
  *
  * Dismissing is always personal: one teacher tidying their view never changes what a colleague on
- * the same course sees. A dismissed block is not removed - it collapses to a small help icon, and
- * clicking that restores it - so there is no separate page for restoring anything.
+ * the same course sees. A dismissed block renders nothing for that teacher, on the page or in the
+ * editor, so dismissed.php - listing what they have dismissed in a course - is the way back.
  *
  * Keyed on the guidance row id rather than on the text, so that editing a block, or an
  * administrator rewording the preset it uses, does not silently un-dismiss it for everyone.

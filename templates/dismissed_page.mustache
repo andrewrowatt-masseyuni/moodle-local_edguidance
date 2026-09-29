@@ -1,0 +1,66 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_edguidance/dismissed_page
+
+    The teacher guidance the current user has dismissed in a course, and the links to restore it.
+
+    Every Restore link is a plain GET carrying a sesskey, so this page needs no JavaScript - it is the
+    way back for guidance that has already gone from the page.
+
+    Context variables required for this template:
+    * courseurl string
+    * hasany bool
+    * items array - excerpt (plain text, possibly empty), location, locationurl, restoreurl, restorelabel
+
+    Example context (json):
+    {
+        "courseurl": "https://moodle.local/course/view.php?id=2",
+        "hasany": true,
+        "items": [
+            {
+                "excerpt": "Set the due date before releasing this to students.",
+                "location": "Assignment 1",
+                "locationurl": "#",
+                "restoreurl": "#",
+                "restorelabel": "Restore teacher guidance in Assignment 1"
+            }
+        ]
+    }
+}}
+<div class="edguidance-dismissedpage">
+    {{#hasany}}
+        <p>{{#str}} dismissed_desc, local_edguidance {{/str}}</p>
+        <ul class="list-group mb-4 edguidance-dismissedlist">
+            {{#items}}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="mr-3">
+                        {{#excerpt}}<div class="edguidance-excerpt">{{excerpt}}</div>{{/excerpt}}
+                        <a class="small" href="{{locationurl}}">{{location}}</a>
+                    </div>
+                    <a class="btn btn-secondary btn-sm flex-shrink-0" href="{{restoreurl}}"
+                        aria-label="{{restorelabel}}">{{#str}} restore, local_edguidance {{/str}}</a>
+                </li>
+            {{/items}}
+        </ul>
+    {{/hasany}}
+    {{^hasany}}
+        <p class="text-muted">{{#str}} dismissednone, local_edguidance {{/str}}</p>
+    {{/hasany}}
+
+    <a href="{{courseurl}}">{{#str}} backtocourse, local_edguidance {{/str}}</a>
+</div>

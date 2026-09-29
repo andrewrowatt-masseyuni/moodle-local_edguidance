@@ -24,12 +24,18 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['dismiss'] = 'Dismiss';
-$string['dismissguidance'] = 'Dismiss this teacher guidance';
+$string['backtocourse'] = 'Back to the course';
+$string['dismissed'] = 'Teacher guidance marked as read';
+$string['dismissed_desc'] = 'Teacher guidance you have marked as read is not shown to you anywhere in this course. Restore it to see it again. This only changes what you see, never what your colleagues see.';
+$string['dismissedconfirm'] = 'You have marked this teacher guidance as read. When you revisit this page, it will be removed.';
+$string['dismissednone'] = 'You have not marked any teacher guidance as read in this course.';
+$string['dismissedundo'] = 'If you didn\'t mean to do that you can undo this action.';
 $string['edguidance:manage'] = 'Add and edit teacher guidance';
 $string['edguidance:view'] = 'View teacher guidance';
+$string['formdismissed'] = 'You have marked this teacher guidance as read, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['guidance'] = 'Teacher guidance';
 $string['guidancemissing'] = 'The site guidance preset this used is no longer available, so this may be out of date.';
+$string['markasread'] = 'Mark as read';
 $string['onlyteachers'] = 'Only teachers see this';
 $string['pluginname'] = 'Teacher guidance';
 $string['presetguidance'] = 'Guidance';
@@ -45,12 +51,14 @@ $string['presettitle_desc'] = 'Short name shown to teachers when choosing a pres
 $string['presetunavailable'] = 'That preset is no longer available. Choose another, or write your own.';
 $string['previewempty'] = 'This teacher guidance has no text, so nobody will see it. Click to write some, or delete it.';
 $string['previewnotfound'] = 'This teacher guidance belongs to another activity or section, or has been removed, so it will not show here. Click to write new guidance in its place, or delete it.';
-$string['privacy:metadata:favourites'] = 'Teacher guidance blocks that a user has dismissed.';
-$string['privacy:path:dismissed'] = 'Dismissed teacher guidance';
-$string['review'] = 'Review teacher guidance for this activity';
-$string['reviewsection'] = 'Review teacher guidance for this section';
+$string['privacy:metadata:favourites'] = 'Teacher guidance that a user has marked as read.';
+$string['privacy:path:dismissed'] = 'Teacher guidance marked as read';
+$string['restore'] = 'Restore';
+$string['restored'] = 'The teacher guidance has been restored.';
+$string['restoreguidance'] = 'Restore teacher guidance in {$a}';
 $string['source'] = 'Guidance';
 $string['source_help'] = 'Use a preset to show site-wide guidance that stays up to date and cannot be edited here. Choose "My own text" to write your own, or to edit a copy of a preset.';
 $string['sourceown'] = 'My own text';
 $string['sourcepreset'] = 'Use preset: {$a}';
 $string['task:purgedrafts'] = 'Delete abandoned teacher guidance drafts';
+$string['undo'] = 'Undo';

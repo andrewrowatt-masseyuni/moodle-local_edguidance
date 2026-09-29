@@ -51,9 +51,13 @@ Feature: Teacher guidance embedded in book chapters and lesson pages
   @javascript
   Scenario: Chapter guidance can be dismissed and restored like any other
     Given I am on the "Course book" "book activity" page logged in as teacher1
-    When I click on "Dismiss" "button"
-    Then I should not see "Pause here for the group task."
-    And I reload the page
+    When I click on "Mark as read" "button"
+    Then I should see "When you revisit this page, it will be removed."
     And I should not see "Pause here for the group task."
-    And I click on "Review teacher guidance for this activity" "button"
+    And I reload the page
+    And I should see "Chapter text."
+    And I should not see "Pause here for the group task."
+    And I am on the "Course 1" "local_edguidance > dismissed guidance" page
+    And I click on "a[aria-label='Restore teacher guidance in Course book']" "css_element"
+    And I am on the "Course book" "book activity" page
     And I should see "Pause here for the group task."

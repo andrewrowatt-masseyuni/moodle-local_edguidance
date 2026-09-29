@@ -23,11 +23,14 @@ use local_edguidance\guidance;
  * One guidance block, wherever it appears: in an activity card, a book chapter, a lesson page or a
  * section summary.
  *
- * Both states are exported - the guidance, and the help icon it collapses to once dismissed - and
- * the server decides which one starts hidden. The AMD module only toggles between them, so
- * restoring needs no round trip for markup and nothing is rendered client-side.
+ * A block the current user has dismissed renders nothing, anywhere - there is no trace of it on the
+ * page. Otherwise both states are exported - the guidance, and the confirmation that replaces it
+ * once dismissed, with an undo - and the AMD module only toggles between them, so undo needs no
+ * round trip for markup and nothing is rendered client-side.
  *
- * The editor previews a block with the same template, so that it looks as it will on the page.
+ * The editor previews a block with the same template, so that it looks as it will on the page. It
+ * previews a dismissed block in full too; whether to show it is the editor's decision, because a
+ * teacher can ask to see what they have dismissed there (see tiny_edguidance/previews).
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -62,15 +65,12 @@ class block implements \renderable, \templatable {
             'id' => (int)$this->row->id,
             'body' => $this->resolved->content,
             'missing' => $this->resolved->missing,
-            // A teacher who has dismissed a block is still shown it in full while editing it.
-            'dismissed' => !$this->preview && dismissed::is_dismissed((int)$this->row->id),
-            'section' => (int)$this->row->sectionid > 0,
             'preview' => $this->preview,
         ];
     }
 
     /**
-     * Render one row, or nothing if it has nothing to say.
+     * Render one row, or nothing if it has nothing to say or the current user has dismissed it.
      *
      * Callers are responsible for the capability check: this renders for whoever asks.
      *
@@ -83,6 +83,11 @@ class block implements \renderable, \templatable {
      */
     public static function render_row(\stdClass $row): string {
         global $OUTPUT;
+
+        // Before resolving, which formats the text: a dismissed block costs nothing.
+        if (dismissed::is_dismissed((int)$row->id)) {
+            return '';
+        }
 
         $resolved = guidance::resolve($row);
         if ($resolved->content === '' && !$resolved->missing) {
@@ -98,8 +103,9 @@ class block implements \renderable, \templatable {
      * Render one row as the editor previews it: in full, with no buttons, because a click anywhere
      * on it opens the block's form.
      *
-     * Unlike render_row(), never renders nothing. The preview is what a teacher clicks to edit or
-     * see the block, so a block with nothing to say, or a token with no block here, says so instead.
+     * Unlike render_row(), never renders nothing, and ignores dismissal. The preview is what a
+     * teacher clicks to edit or see the block, so a block with nothing to say, or a token with no
+     * block here, says so instead.
      *
      * Callers are responsible for the capability check: this renders for whoever asks.
      *

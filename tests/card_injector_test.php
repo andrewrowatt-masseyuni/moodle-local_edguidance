@@ -144,6 +144,24 @@ final class card_injector_test extends \advanced_testcase {
     }
 
     /**
+     * A teacher who has dismissed the guidance gets none of it in the card, not even an empty
+     * wrapper; the filter is told it was handled, so a description Snap shows does not bring it back.
+     */
+    public function test_dismissed_guidance_is_left_out_of_the_card(): void {
+        $this->resetAfterTest();
+        [$course, $cmid, $row] = $this->make_course();
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        dismissed::set((int)$row->id, true);
+
+        card_injector::prime((int)$course->id);
+        $html = $this->render_card($course, $cmid);
+
+        $this->assertStringNotContainsString('Unique guidance words.', $html);
+        $this->assertStringNotContainsString('edguidance', $html);
+        $this->assertTrue(card_injector::was_emitted((int)$row->id));
+    }
+
+    /**
      * With the description on the course page, the filter places it; the card is left alone.
      */
     public function test_shown_description_is_left_to_the_filter(): void {

@@ -83,6 +83,69 @@ Feature: Adding teacher guidance from the editor
     And I should not see "Form groups before starting."
 
   @javascript
+  Scenario: Dismissed guidance is hidden in the editor until asked for, and can be restored from its form
+    Given I am on the "Course book" "book activity" page logged in as teacher1
+    And I turn editing mode on
+    And I follow "Edit chapter \"1. Chapter 1\""
+    And I expand all toolbars for the "Content" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And I click on "[role^='menuitem'][aria-label='Use a preset']" "css_element"
+    And I click on "[role^='menuitem'][aria-label='Group work']" "css_element"
+    # Nothing dismissed yet, so nothing to show.
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And "[role^='menuitem'][aria-label='Show guidance marked as read']" "css_element" should not exist
+    And I press the escape key
+    And I press "Save changes"
+    And I click on "Mark as read" "button"
+    When I follow "Edit chapter \"1. Chapter 1\""
+    Then the "Content" TinyMCE editor should not preview guidance "Form groups before starting."
+    And I expand all toolbars for the "Content" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And I click on "[role^='menuitem'][aria-label='Show guidance marked as read']" "css_element"
+    And the "Content" TinyMCE editor should preview dismissed guidance "Form groups before starting."
+    # Shown for good in this editor: there is no "hide" to offer.
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And "[role^='menuitem'][aria-label='Show guidance marked as read']" "css_element" should not exist
+    And I press the escape key
+    And I switch to the "Content" TinyMCE editor iframe
+    And I click on "div[data-edguidance]" "css_element"
+    And I switch to the main frame
+    And I should see "You have marked this teacher guidance as read" in the "Teacher guidance" "dialogue"
+    And I click on "Restore" "button" in the "Teacher guidance" "dialogue"
+    And I should not see "You have marked this teacher guidance as read" in the "Teacher guidance" "dialogue"
+    And I click on "Cancel" "button" in the "Teacher guidance" "dialogue"
+    And the "Content" TinyMCE editor should preview guidance "Form groups before starting."
+    And the "Content" TinyMCE editor should not preview dismissed guidance "Form groups before starting."
+    And I press "Save changes"
+    And I should see "Form groups before starting."
+
+  @javascript
+  Scenario: Guidance can be deleted from its form, after a warning that it goes for every teacher
+    Given I am on the "Course book" "book activity" page logged in as teacher1
+    And I turn editing mode on
+    And I follow "Edit chapter \"1. Chapter 1\""
+    And I expand all toolbars for the "Content" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And I click on "[role^='menuitem'][aria-label='Use a preset']" "css_element"
+    And I click on "[role^='menuitem'][aria-label='Group work']" "css_element"
+    And I switch to the "Content" TinyMCE editor iframe
+    And I click on "div[data-edguidance]" "css_element"
+    And I switch to the main frame
+    # Nothing to restore: this teacher has not dismissed it.
+    And "Restore" "button" in the "Teacher guidance" "dialogue" should not be visible
+    When I click on "Delete" "button" in the "Teacher guidance" "dialogue"
+    Then I should see "This deletes the teacher guidance for every teacher" in the "Delete teacher guidance" "dialogue"
+    # Backing out of the warning keeps it.
+    And I click on "Cancel" "button" in the "Delete teacher guidance" "dialogue"
+    And the "Content" TinyMCE editor should preview guidance "Form groups before starting."
+    And I click on "Delete" "button" in the "Teacher guidance" "dialogue"
+    And I click on "Delete" "button" in the "Delete teacher guidance" "dialogue"
+    And the "Content" TinyMCE editor should not save "data-edguidance"
+    And I press "Save changes"
+    And I should see "Chapter text."
+    And I should not see "Form groups before starting."
+
+  @javascript
   Scenario: Guidance can be moved up and down past the text around it
     Given I am on the "Course book" "book activity" page logged in as teacher1
     And I turn editing mode on

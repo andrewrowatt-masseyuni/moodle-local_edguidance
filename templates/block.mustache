@@ -20,8 +20,10 @@
     One teacher guidance block, wherever it is shown: an activity card, a book chapter, a lesson page
     or a section summary.
 
-    Both states are rendered - the guidance, and the help icon it collapses to once dismissed - and
-    the server decides which one starts hidden. local_edguidance/guidance only toggles between them.
+    Only ever rendered for a block the current user has not dismissed; a dismissed block renders
+    nothing at all. Both states are here all the same - the guidance, and the confirmation shown once
+    it is dismissed, with an undo - so local_edguidance/guidance only toggles between them and undo
+    needs no round trip for markup.
 
     This must never contain the data-edguidance attribute. That is the token filter_edguidance looks
     for, and mod_lesson runs some text through the filters twice.
@@ -30,8 +32,6 @@
     * id int - local_edguidance.id
     * body string - already formatted HTML, rendered unescaped
     * missing bool - the preset it used has gone, so the body is a possibly stale copy
-    * dismissed bool - the current user has dismissed it
-    * section bool - it is in a section summary rather than in an activity
     * preview bool - for the editor's preview: no buttons, because a click anywhere on it edits it
 
     Example context (json):
@@ -39,31 +39,33 @@
         "id": 42,
         "body": "<p>Set the due date before releasing this to students.</p>",
         "missing": false,
-        "dismissed": false,
-        "section": false,
         "preview": false
     }
 }}
-<div class="edguidance{{#dismissed}} edguidance-is-dismissed{{/dismissed}}" data-region="edguidance" data-guidanceid="{{id}}">
-    <div class="edguidance-card" data-region="edguidance-full"{{#dismissed}} hidden{{/dismissed}}>
+<div class="edguidance" data-region="edguidance" data-guidanceid="{{id}}">
+    <div class="edguidance-card">
         <div class="edguidance-header">
             <span class="edguidance-title">{{#str}} guidance, local_edguidance {{/str}}</span>
             <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
             {{^preview}}
             <button type="button" class="btn btn-link btn-sm edguidance-dismiss" data-action="edguidance-dismiss"
-                aria-label="{{#str}} dismissguidance, local_edguidance {{/str}}">{{#str}} dismiss, local_edguidance {{/str}}</button>
+                data-region="edguidance-live">{{#pix}} t/markasread, core {{/pix}}{{#str}} markasread, local_edguidance {{/str}}</button>
             {{/preview}}
         </div>
-        {{#missing}}
-            <div class="alert alert-info edguidance-missing" role="alert">{{#str}} guidancemissing, local_edguidance {{/str}}</div>
-        {{/missing}}
-        <div class="edguidance-body">{{{body}}}</div>
+        <div data-region="edguidance-live">
+            {{#missing}}
+                <div class="alert alert-info edguidance-missing" role="alert">{{#str}} guidancemissing, local_edguidance {{/str}}</div>
+            {{/missing}}
+            <div class="edguidance-body">{{{body}}}</div>
+        </div>
+        {{^preview}}
+        <div class="edguidance-confirm" data-region="edguidance-dismissed" hidden>
+            {{#str}} dismissedconfirm, local_edguidance {{/str}}
+            {{#str}} dismissedundo, local_edguidance {{/str}}
+            <button type="button" class="btn btn-link p-0 align-baseline edguidance-undo" data-action="edguidance-undo">
+                {{#str}} undo, local_edguidance {{/str}}
+            </button>
+        </div>
+        {{/preview}}
     </div>
-    {{^preview}}
-    <button type="button" class="btn btn-link p-0 icon-no-margin edguidance-restore" data-region="edguidance-collapsed"
-        data-action="edguidance-restore"
-        aria-label="{{#section}}{{#str}} reviewsection, local_edguidance {{/str}}{{/section}}{{^section}}{{#str}} review, local_edguidance {{/str}}{{/section}}"{{^dismissed}} hidden{{/dismissed}}>
-        {{#pix}} help, core {{/pix}}
-    </button>
-    {{/preview}}
 </div>
