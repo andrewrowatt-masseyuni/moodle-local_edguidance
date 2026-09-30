@@ -1,5 +1,5 @@
 /*
- * Teacher guidance styling.
+ * Teacher guidance styling - "soft panel + icon disc" (1d).
  *
  * Everything hangs off the markup this plugin emits (templates/block.mustache), never off the host
  * activity's own wrappers, because the block turns up inside three very different hosts: a course
@@ -16,10 +16,9 @@ div.edguidance-embed[data-edguidance] {
 }
 
 /*
- * Each category's palette: the rule down the left edge and the icon (accent), the faint fill (tint),
- * the category name and heading (ink), the guidance itself (text), and the buttons (action). Text and
- * buttons clear 4.5:1 against the fill. Note, the default, is also what the form's preset preview
- * wears, since that is what a new block becomes unless the teacher says otherwise.
+ * Each category's palette: the icon (accent), the panel fill (tint), the category name and heading
+ * (ink), the guidance itself (text), and the buttons (action). Text and buttons clear 4.5:1 against
+ * the fill. The icon disc and the button border are derived from the accent.
  */
 .edguidance,
 .edguidance-preview {
@@ -28,6 +27,7 @@ div.edguidance-embed[data-edguidance] {
     --edguidance-ink: #7a5b00;
     --edguidance-text: #574a26;
     --edguidance-action: #7a5b00;
+    --edguidance-icon: '\f249';
 }
 
 .edguidance-recommendation {
@@ -36,6 +36,7 @@ div.edguidance-embed[data-edguidance] {
     --edguidance-ink: #164f8a;
     --edguidance-text: #2c4660;
     --edguidance-action: #164f8a;
+    --edguidance-icon: '\f0eb';
 }
 
 .edguidance-task {
@@ -44,6 +45,7 @@ div.edguidance-embed[data-edguidance] {
     --edguidance-ink: #9b1c1c;
     --edguidance-text: #5a2a2a;
     --edguidance-action: #9b1c1c;
+    --edguidance-icon: '\f0ae';
 }
 
 .edguidance-optionaltask {
@@ -52,11 +54,13 @@ div.edguidance-embed[data-edguidance] {
     --edguidance-ink: #9a4a00;
     --edguidance-text: #5c3a1a;
     --edguidance-action: #9a4a00;
+    --edguidance-icon: '\f0ae';
 }
 
 /*
- * Any category, once every item on its checklist is ticked: green, so a finished list stands out
- * from one still to do. After the categories, so it wins; the category's name and icon stay.
+ * Any category, once every item on its checklist is ticked: green, and the icon disc shows a tick,
+ * so a finished list stands out from one still to do. After the categories, so it wins; the
+ * category's name stays.
  */
 .edguidance.edguidance-complete {
     --edguidance-accent: #2e9d4f;
@@ -64,23 +68,22 @@ div.edguidance-embed[data-edguidance] {
     --edguidance-ink: #1b6b33;
     --edguidance-text: #2d4a34;
     --edguidance-action: #1b6b33;
+    --edguidance-icon: '\f00c';
 }
 
-/*
- * "Quiet strip" treatment, as mod_ednote had: no fill of its own beyond a faint tint, and a coloured
- * rule down its left edge, so it reads as a low-weight teacher aside rather than competing with the
- * content around it.
- */
 .edguidance {
     margin: 0.5rem 0;
     text-align: left;
 }
 
+/* A soft rounded panel: no rule and no divider; the tint alone sets it apart from the content. */
 .edguidance-card {
-    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
-    border-left: 3px solid var(--edguidance-accent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.5rem;
     color: var(--edguidance-text);
-    font-weight: 400;
     background-color: var(--edguidance-tint);
 }
 
@@ -88,67 +91,69 @@ div.edguidance-embed[data-edguidance] {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.25rem 0.5rem;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--edguidance-accent), 50% transparent);
-    padding-bottom: 0.25rem;
+    gap: 0.25rem 0.375rem;
+}
+
+/* The category's icon in a tinted disc; a tick once the checklist is complete. */
+.edguidance-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-right: 0.25rem;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--edguidance-accent) 15%, transparent);
+}
+
+.edguidance-icon::before {
+    content: var(--edguidance-icon);
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.75rem;
+    color: var(--edguidance-accent);
 }
 
 /* The category's name. Named as well as coloured, so the category does not rest on colour alone. */
 .edguidance-title {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 0.5rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    font-size: 0.78rem;
-    text-transform: uppercase;
     color: var(--edguidance-ink);
-}
-
-.edguidance-title::before {
-    content: '\f249';
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    font-size: 0.85rem;
-    letter-spacing: normal;
-    color: var(--edguidance-accent);
-}
-
-.edguidance-recommendation .edguidance-title::before {
-    content: '\f0eb';
-}
-
-.edguidance-task .edguidance-title::before,
-.edguidance-optionaltask .edguidance-title::before {
-    content: '\f0ae';
 }
 
 /* "Only teachers see this" - reassures the teacher the aside is not on the student view. */
 .edguidance-scope {
     font-size: 0.75rem;
+    color: var(--edguidance-text);
 }
 
-.edguidance .edguidance-dismiss,
+.edguidance-scope::before {
+    content: '\00b7';
+    margin-right: 0.375rem;
+}
+
 .edguidance .edguidance-restore {
     margin-left: auto;
     padding: 0;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--edguidance-action);
 }
 
 /* The icon, sized to the label rather than to the theme's 16px icon box. */
 .edguidance .edguidance-dismiss .icon,
-.edguidance .edguidance-restore .icon {
+.edguidance .edguidance-restore .icon,
+.edguidance .edguidance-missing .icon {
     width: auto;
     height: auto;
-    margin-right: 0.25rem;
+    margin-right: 0.375rem;
     font-size: inherit;
 }
 
 /* The optional heading: an h5, sized to the aside rather than to the page's own h5. */
 .edguidance .edguidance-heading {
-    margin: 0 0 0.25rem;
+    margin: 0 0 0.5rem;
     font-size: 0.95rem;
     font-weight: 500;
     line-height: 1.4;
@@ -166,15 +171,12 @@ div.edguidance-embed[data-edguidance] {
     margin-bottom: 0;
 }
 
-/*
- * A checklist (classes/checklist.php): each item a line of its own, indented 20px, its text wrapping
- * clear of the box.
- */
+/* A checklist (classes/checklist.php): each item a line of its own, its text wrapping clear of the box. */
 .edguidance-body .edguidance-checkitem {
     display: flex;
     align-items: flex-start;
-    gap: 0.3rem;
-    margin: 0 0 0.25rem 20px;
+    gap: 0.5rem;
+    margin: 0 0 0.25rem;
     font-weight: inherit;
 }
 
@@ -185,36 +187,29 @@ div.edguidance-embed[data-edguidance] {
 
 .edguidance-body .edguidance-check {
     flex: none;
-    margin: 0.3em 0 0;
 }
 
 .edguidance-body .edguidance-checkitem:has(> .edguidance-check:not(:disabled)) {
     cursor: pointer;
 }
 
+/* Open ring when to do; filled with a white tick when done. */
 .edguidance-body input[type="checkbox"].edguidance-check {
     appearance: none;
     -webkit-appearance: none;
-    width: 1.25em;
-    height: 1.25em;
-    margin: 0.1em 0 0 0;
-    vertical-align: -0.25em;
-    color: var(--edguidance-ink);
-    border: 2px solid var(--edguidance-accent);
+    width: 1.1em;
+    height: 1.1em;
+    margin: 0.2em 0 0;
+    border: 1.5px solid var(--edguidance-accent);
     border-radius: 50%;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l3 3 5-6' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 80% no-repeat;
+    background: rgba(255, 255, 255, 0.7) center / 75% no-repeat;
     cursor: pointer;
-    transition: border-color 0.15s, background-color 0.15s;
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
 .edguidance-body input[type="checkbox"].edguidance-check:checked {
-    border-color: var(--edguidance-accent);
-    color: var(--edguidance-accent);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l3 3 5-6' fill='none' stroke='%23222' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-.edguidance-body input[type="checkbox"].edguidance-check:hover {
-    border-color: var(--edguidance-accent);
+    background-color: var(--edguidance-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l3 3 5-6' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .edguidance-check:focus-visible {
@@ -231,9 +226,9 @@ div.edguidance-embed[data-edguidance] {
 
 /*
  * An item that cannot be ticked here - a preset's, or for a teacher without the capability: its box
- * faded behind a dashed ring, with a cursor that says no, and its text a little muted (still 4.5:1 on
- * every palette). Only a box rendered disabled, which carries no data-action: a tickable box is also
- * disabled for the moment its tick is being saved, and must not flicker.
+ * faded behind a dashed ring, with a cursor that says no, and its text a little muted. Only a box
+ * rendered disabled, which carries no data-action: a tickable box is also disabled for the moment its
+ * tick is being saved, and must not flicker.
  */
 .edguidance-body input[type="checkbox"].edguidance-check:disabled:not([data-action]) {
     border-style: dashed;
@@ -245,47 +240,56 @@ div.edguidance-embed[data-edguidance] {
     opacity: 0.8;
 }
 
+/* The preset has gone: a quiet inline note in the card's own text colour, not a boxed alert. */
 .edguidance .edguidance-missing {
-    padding: 0.25rem 0.5rem;
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
+    color: var(--edguidance-text);
+}
+
+/* Mark as read / complete, at the foot of the card where the reader finishes. */
+.edguidance-footer {
+    display: flex;
+}
+
+.edguidance .edguidance-dismiss {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--edguidance-action);
+    border: 1px solid color-mix(in srgb, var(--edguidance-accent) 50%, transparent);
+    border-radius: 0.375rem;
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+.edguidance .edguidance-dismiss:hover,
+.edguidance .edguidance-dismiss:focus {
+    color: var(--edguidance-action);
+    background-color: #fff;
 }
 
 /*
- * The dismissed confirmation. A check marks the change; the sentence flows with the inline undo
- * button as core's own inline actions do. It keeps the card's palette - rule, text and all - so the
- * block still reads as the same guidance until the page is next loaded.
+ * The dismissed confirmation: the sentence flows with the inline undo button as core's own inline
+ * actions do. It keeps the card's palette so the block still reads as the same guidance until the
+ * page is next loaded.
  */
 .edguidance-confirm {
-    position: relative;
-    padding: 0.125rem 0 0.125rem 1.375rem;
     font-size: 0.875rem;
     line-height: 1.55;
     color: var(--edguidance-text);
-    font-weight: 300;
-}
-
-.edguidance-confirm::before {
-    content: '\f00c';
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    font-size: 0.8rem;
-    color: var(--edguidance-accent);
-    position: absolute;
-    left: 0;
-    top: 0.2rem;
 }
 
 .edguidance .edguidance-undo {
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--edguidance-action);
 }
 
 /* The preview of a preset in the embed form, dressed as the block it will become. */
 .edguidance-preview {
-    padding: 0.375rem 0.75rem;
-    border-left: 3px solid var(--edguidance-accent);
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.5rem;
     background-color: var(--edguidance-tint);
 }
 

@@ -30,7 +30,10 @@
 
     The category is named in the header as well as coloured, so that it does not rest on colour alone.
     A task, optional or not, is marked as complete rather than as read. A block whose checklist is all
-    ticked is dressed as complete, whatever its category.
+    ticked is dressed as complete, whatever its category: the icon disc turns green and shows a tick.
+
+    The mark-as-read/complete button sits at the foot of the card, after the guidance, where the
+    reader finishes. Restore, in the editor, stays in the header.
 
     The editor previews blocks with this too. There, a teacher who may tick gets the same buttons as
     the page - or Restore, on a block they have already marked - and anyone else gets none, because a
@@ -65,12 +68,9 @@
 <div class="edguidance edguidance-{{category}}{{#complete}} edguidance-complete{{/complete}}" data-region="edguidance" data-guidanceid="{{id}}">
     <div class="edguidance-card">
         <div class="edguidance-header">
+            <span class="edguidance-icon" aria-hidden="true"></span>
             <span class="edguidance-title">{{categoryname}}</span>
             <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
-            {{#dismissable}}
-            <button type="button" class="btn btn-link btn-sm edguidance-dismiss" data-action="edguidance-dismiss"
-                data-region="edguidance-live">{{#pix}} t/markasread, core {{/pix}}{{#task}}{{#str}} markascomplete, local_edguidance {{/str}}{{/task}}{{^task}}{{#str}} markasread, local_edguidance {{/str}}{{/task}}</button>
-            {{/dismissable}}
             {{#restorable}}
             <button type="button" class="btn btn-link btn-sm edguidance-restore" data-action="edguidance-restore">{{#pix}} e/undo, core {{/pix}}{{#str}} restore, local_edguidance {{/str}}</button>
             {{/restorable}}
@@ -80,11 +80,14 @@
                 <h5 class="edguidance-heading">{{{heading}}}</h5>
             {{/heading}}
             {{#missing}}
-                <div class="alert alert-info edguidance-missing" role="alert">{{#str}} guidancemissing, local_edguidance {{/str}}</div>
+                <div class="edguidance-missing" role="alert">{{#pix}} i/info, core {{/pix}}{{#str}} guidancemissing, local_edguidance {{/str}}</div>
             {{/missing}}
             <div class="edguidance-body">{{{body}}}</div>
         </div>
         {{#dismissable}}
+        <div class="edguidance-footer" data-region="edguidance-live">
+            <button type="button" class="btn btn-sm edguidance-dismiss" data-action="edguidance-dismiss">{{#pix}} t/markasread, core {{/pix}}{{#task}}{{#str}} markascomplete, local_edguidance {{/str}}{{/task}}{{^task}}{{#str}} markasread, local_edguidance {{/str}}{{/task}}</button>
+        </div>
         <div class="edguidance-confirm" data-region="edguidance-dismissed" hidden>
             {{#task}}{{#str}} completedconfirm, local_edguidance {{/str}}{{/task}}
             {{^task}}{{#str}} dismissedconfirm, local_edguidance {{/str}}{{/task}}
