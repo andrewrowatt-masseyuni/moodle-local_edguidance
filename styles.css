@@ -115,8 +115,12 @@ div.edguidance-embed[data-edguidance] {
     color: var(--edguidance-accent);
 }
 
-/* The category's name. Named as well as coloured, so the category does not rest on colour alone. */
+/*
+ * The block's name: its heading, as an h5 - hence the margin - or else its category's name, so the
+ * category does not rest on colour alone.
+ */
 .edguidance-title {
+    margin: 0;
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--edguidance-ink);
@@ -149,15 +153,6 @@ div.edguidance-embed[data-edguidance] {
     height: auto;
     margin-right: 0.375rem;
     font-size: inherit;
-}
-
-/* The optional heading: an h5, sized to the aside rather than to the page's own h5. */
-.edguidance .edguidance-heading {
-    margin: 0 0 0.5rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    line-height: 1.4;
-    color: var(--edguidance-ink);
 }
 
 .edguidance-body {

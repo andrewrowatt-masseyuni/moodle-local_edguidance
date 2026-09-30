@@ -91,8 +91,9 @@ As a manager, in an activity description, a book chapter, a lesson page or a sec
   The copy is your own and does not change when the preset does.
 * **Start with blank** - opens the guidance editor empty.
 
-The guidance editor also sets the guidance's **Category** and an optional **Heading**, shown above
-the guidance:
+The guidance editor also sets the guidance's **Category** and an optional **Heading**, which names
+the guidance in its header in place of the category's name (leave it empty to keep the category's
+name). Each field's help is written under its label:
 
 | Category | Colour | Marked off with |
 | --- | --- | --- |
@@ -136,7 +137,7 @@ Start each item on a line of its own with `[ ]` and a space:
 [ ] Check the groups
 ```
 
-Write `[x]` for an item that starts ticked. The guidance form's help says the same, and the
+Write `[x]` for an item that starts ticked. The guidance editor's label says the same, and the
 **Teacher guidance** button on the guidance editor's own toolbar has one item, **Add task**, which
 writes `[ ] Task name` on a new line with *Task name* selected to type over.
 
@@ -219,7 +220,7 @@ two sections from sharing one.
 | `introorder` | 0 if the block is not in the activity description; otherwise its position there. |
 | `presetslot` | 0 for the block's own text; 1-10 to use that site preset. |
 | `category` | `note` (the default), `recommendation`, `task` or `optionaltask`. The block's own, preset or not. |
-| `heading` | Optional plain text shown above the guidance, or null. The block's own, preset or not. |
+| `heading` | Optional plain text naming the guidance in its header, in place of its category's name; or null. The block's own, preset or not. |
 | `guidance`, `guidanceformat` | Own text - or, for a preset block, a snapshot taken when it was linked. A checklist's ticks are part of it. |
 
 Files embedded in a block's own text live in filearea `guidance`, itemid = the row id, in the
@@ -269,7 +270,8 @@ so that the table and the backup say what they mean, and a name this version doe
 later version's backup, say - shows as a note rather than as nothing.
 
 A block's header names its category as well as colouring it, so the category never rests on colour
-alone (WCAG 1.4.1), and "Only teachers see this" still says who it is for. Each category is a class on
+alone (WCAG 1.4.1) - on screen, or where a heading takes the name's place, for screen readers only
+(see below) - and "Only teachers see this" still says who it is for. Each category is a class on
 the block (`edguidance-task`, ...) that sets a handful of custom properties in `styles.css` - accent,
 tint, ink, text and action - and every coloured rule reads those, so a category is one small block of
 CSS. The editor's preview needs nothing extra: its shadow roots link the same stylesheet (see *The
@@ -280,9 +282,17 @@ confirmation, the notice in the guidance form and the editor's hatched hint all 
 words change - see *Dismissing*.
 
 The heading is plain text (`PARAM_TEXT`, 255 characters), formatted with `format_string()` in the
-block's context by `guidance::format_heading()`, and shown as an `h5` above the guidance, sized to the
-aside rather than to the page's own `h5`. The dismissed guidance page shows it too, above the excerpt,
-since telling one block from another is what that page's excerpt is for.
+block's context by `guidance::format_heading()`. It names the block in its header, in place of the
+category's name, as an `h5` with the name's own styling (`.edguidance-title`, with the heading's
+margin taken off). The category is still said, visually hidden, before it (`titlecategory`: "Task:"),
+because Task and Optional task share an icon and would otherwise differ only by colour. Being in the
+header, it stays when the guidance is marked as read. The dismissed guidance page shows it too,
+above the excerpt, since telling one block from another is what that page's excerpt is for.
+
+The guidance form writes each field's help under its label (`embed_form::label()`, strings
+`*_inlinehelp`) rather than behind a help button, so it is read without a click. The help is then
+part of the label; Behat still finds these fields by the label's first words (*I set the field
+"Category"*).
 
 ### Checklists
 

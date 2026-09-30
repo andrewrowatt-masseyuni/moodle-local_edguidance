@@ -28,7 +28,9 @@
     This must never contain the data-edguidance attribute. That is the token filter_edguidance looks
     for, and mod_lesson runs some text through the filters twice.
 
-    The category is named in the header as well as coloured, so that it does not rest on colour alone.
+    The header names the block: by its heading, as an h5, if it has one, otherwise by its category.
+    The category is named as well as coloured, so that it does not rest on colour alone - behind the
+    heading, for screen readers, where there is one.
     A task, optional or not, is marked as complete rather than as read. A block whose checklist is all
     ticked is dressed as complete, whatever its category: the icon disc turns green and shows a tick.
 
@@ -43,6 +45,7 @@
     * id int - local_edguidance.id
     * category string - note, recommendation, task or optionaltask
     * categoryname string - the category's name, for people
+    * titlecategory string - the category's name as it prefixes a heading, for screen readers
     * task bool - marked as complete rather than as read
     * complete bool - it has a checklist, and every item is ticked
     * heading string - already formatted by format_string(), rendered unescaped; '' for none
@@ -56,6 +59,7 @@
         "id": 42,
         "category": "task",
         "categoryname": "Task",
+        "titlecategory": "Task:",
         "task": true,
         "complete": false,
         "heading": "Before the course opens",
@@ -69,16 +73,18 @@
     <div class="edguidance-card">
         <div class="edguidance-header">
             <span class="edguidance-icon" aria-hidden="true"></span>
+            {{#heading}}
+            <h5 class="edguidance-title"><span class="sr-only">{{titlecategory}} </span>{{{heading}}}</h5>
+            {{/heading}}
+            {{^heading}}
             <span class="edguidance-title">{{categoryname}}</span>
+            {{/heading}}
             <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
             {{#restorable}}
             <button type="button" class="btn btn-link btn-sm edguidance-restore" data-action="edguidance-restore">{{#pix}} e/undo, core {{/pix}}{{#str}} restore, local_edguidance {{/str}}</button>
             {{/restorable}}
         </div>
         <div data-region="edguidance-live">
-            {{#heading}}
-                <h5 class="edguidance-heading">{{{heading}}}</h5>
-            {{/heading}}
             {{#missing}}
                 <div class="edguidance-missing" role="alert">{{#pix}} i/info, core {{/pix}}{{#str}} guidancemissing, local_edguidance {{/str}}</div>
             {{/missing}}

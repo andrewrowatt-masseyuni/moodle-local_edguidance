@@ -134,7 +134,8 @@ final class category_test extends \advanced_testcase {
     }
 
     /**
-     * A heading is an h5 above the guidance, formatted as a string: escaped, and stripped of tags.
+     * A heading takes the category's name's place in the header, as an h5, formatted as a string:
+     * escaped, and stripped of tags. The category is still named there, for screen readers only.
      */
     public function test_a_heading_is_an_h5(): void {
         $this->resetAfterTest();
@@ -142,8 +143,13 @@ final class category_test extends \advanced_testcase {
 
         $html = block::render_row($row);
 
-        $this->assertStringContainsString('<h5 class="edguidance-heading">Before week one &amp; after</h5>', $html);
-        $this->assertLessThan(strpos($html, 'edguidance-body'), strpos($html, 'edguidance-heading'));
+        $this->assertStringContainsString(
+            '<h5 class="edguidance-title"><span class="sr-only">Note: </span>Before week one &amp; after</h5>',
+            $html
+        );
+        $this->assertStringNotContainsString('<span class="edguidance-title">', $html);
+        // In the header, which stays when the guidance is marked as read.
+        $this->assertLessThan(strpos($html, 'data-region="edguidance-live"'), strpos($html, '<h5'));
     }
 
     /**
@@ -168,7 +174,7 @@ final class category_test extends \advanced_testcase {
 
         $this->assertStringContainsString('Preset words.', $html);
         $this->assertStringContainsString('edguidance-task', $html);
-        $this->assertStringContainsString('<h5 class="edguidance-heading">Dates</h5>', $html);
+        $this->assertStringContainsString('<h5 class="edguidance-title"><span class="sr-only">Task: </span>Dates</h5>', $html);
     }
 
     /**
@@ -183,7 +189,7 @@ final class category_test extends \advanced_testcase {
 
         $this->assertStringContainsString('edguidance-optionaltask', $html);
         $this->assertStringContainsString('Optional task', $html);
-        $this->assertStringContainsString('<h5 class="edguidance-heading">If there is time</h5>', $html);
+        $this->assertStringContainsString('<span class="sr-only">Optional task: </span>If there is time</h5>', $html);
         $this->assertStringContainsString(get_string('markascomplete', 'local_edguidance'), $html);
     }
 }

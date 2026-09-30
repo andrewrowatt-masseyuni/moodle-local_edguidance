@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['backtocourse'] = 'Back to the course';
 $string['category'] = 'Category';
-$string['category_help'] = 'How the guidance is presented: a note (yellow), a recommendation (blue), a task (red) or an optional task (orange). A teacher marks a task or an optional task as complete, and anything else as read. Either way it is then hidden from that teacher only. The category can be changed at any time.';
+$string['category_inlinehelp'] = 'How the guidance is presented: a note (yellow), a recommendation (blue), a task (red) or an optional task (orange). Each teacher marks a task as complete, and anything else as read, for themselves only.';
 $string['categorynote'] = 'Note';
 $string['categoryoptionaltask'] = 'Optional task';
 $string['categoryrecommendation'] = 'Recommendation';
@@ -49,13 +49,10 @@ $string['eventguidanceupdated'] = 'Teacher guidance updated';
 $string['formcompleted'] = 'You have marked this task as complete, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['formdismissed'] = 'You have marked this teacher guidance as read, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['guidance'] = 'Teacher guidance';
-$string['guidance_help'] = 'To add a checklist that teachers can tick, start each item on a line of its own with [ ] and a space, then the item:
-
-[ ] Set the due date
-
-Write [x] for an item that starts ticked. Ticks are shared: every teacher sees the same ones.';
+$string['guidance_inlinehelp'] = 'For a checklist that teachers can tick, start each item on a line of its own with [ ] and a space - [ ] Set the due date - or use Add task on this editor\'s Teacher guidance button. Write [x] for an item that starts ticked. Ticks are shared: every teacher sees the same ones.';
 $string['guidancemissing'] = 'The site guidance preset this used is no longer available, so this may be out of date.';
 $string['heading'] = 'Heading';
+$string['heading_inlinehelp'] = 'Leave empty to use the category name';
 $string['markascomplete'] = 'Mark as complete';
 $string['markasread'] = 'Mark as read';
 $string['onlyteachers'] = 'Only teachers see this';
@@ -79,8 +76,9 @@ $string['restore'] = 'Restore';
 $string['restored'] = 'The teacher guidance has been restored.';
 $string['restoreguidance'] = 'Restore teacher guidance in {$a}';
 $string['source'] = 'Guidance';
-$string['source_help'] = 'Use a preset to show site-wide guidance that stays up to date and cannot be edited here. Choose "My own text" to write your own, or to edit a copy of a preset.';
+$string['source_inlinehelp'] = 'Use a preset for site-wide guidance that stays up to date and cannot be edited here. Choose My own text to write your own, or to edit a copy of a preset.';
 $string['sourceown'] = 'My own text';
 $string['sourcepreset'] = 'Use preset: {$a}';
 $string['task:purgedrafts'] = 'Delete abandoned teacher guidance drafts';
+$string['titlecategory'] = '{$a}:';
 $string['undo'] = 'Undo';

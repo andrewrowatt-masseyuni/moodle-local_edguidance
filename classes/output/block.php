@@ -84,6 +84,7 @@ class block implements \renderable, \templatable {
             'id' => (int)$this->row->id,
             'category' => $category,
             'categoryname' => category::name($category),
+            'titlecategory' => get_string('titlecategory', 'local_edguidance', category::name($category)),
             'task' => category::is_task($category),
             'complete' => $this->resolved->complete,
             'heading' => guidance::format_heading($this->row),

@@ -232,6 +232,23 @@ final class embed_form_test extends \advanced_testcase {
     }
 
     /**
+     * Each field's help is written under its label, not hidden behind a help button - the heading's
+     * saying what an empty one does.
+     */
+    public function test_help_is_under_the_labels(): void {
+        $this->resetAfterTest();
+        $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(1, 'Dates', '<p>Dates.</p>');
+        [, $context] = $this->setup_book();
+
+        $html = $this->open(['contextid' => $context->id]);
+
+        $desc = '<span class="edguidance-field-desc d-block small text-muted font-weight-normal mb-1">';
+        $this->assertSame(4, substr_count($html, $desc));
+        $this->assertStringContainsString('Leave empty to use the category name</span>', $html);
+        $this->assertStringNotContainsString(get_string('helpprefix2', '', ''), $html);
+    }
+
+    /**
      * An editing teacher cannot open the form: writing guidance is for managers.
      */
     public function test_editing_teachers_cannot_write_guidance(): void {

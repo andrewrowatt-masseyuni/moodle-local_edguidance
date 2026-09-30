@@ -141,6 +141,21 @@ class embed_form extends dynamic_form {
     }
 
     /**
+     * A field's label, with its help written out under it rather than behind a help button.
+     *
+     * The help is part of the label, so Behat finds such a field by its name rather than its label.
+     *
+     * @param string $key The label's string key; its help is key_inlinehelp.
+     * @return string HTML.
+     */
+    protected static function label(string $key): string {
+        return get_string($key, 'local_edguidance') . \html_writer::span(
+            get_string($key . '_inlinehelp', 'local_edguidance'),
+            'edguidance-field-desc d-block small text-muted font-weight-normal mb-1'
+        );
+    }
+
+    /**
      * The form.
      */
     public function definition() {
@@ -167,12 +182,11 @@ class embed_form extends dynamic_form {
             ));
         }
 
-        $mform->addElement('select', 'category', get_string('category', 'local_edguidance'), category::options());
-        $mform->addHelpButton('category', 'category', 'local_edguidance');
+        $mform->addElement('select', 'category', self::label('category'), category::options());
         $mform->setType('category', PARAM_ALPHA);
         $mform->setDefault('category', category::NOTE);
 
-        $mform->addElement('text', 'heading', get_string('heading', 'local_edguidance'), ['size' => 60]);
+        $mform->addElement('text', 'heading', self::label('heading'), ['size' => 60]);
         $mform->setType('heading', PARAM_TEXT);
         $mform->addRule('heading', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
@@ -185,8 +199,7 @@ class embed_form extends dynamic_form {
                 $title = format_string($title, true, ['context' => $context, 'escape' => false]);
                 $options[$slot] = get_string('sourcepreset', 'local_edguidance', $title);
             }
-            $mform->addElement('select', 'source', get_string('source', 'local_edguidance'), $options);
-            $mform->addHelpButton('source', 'source', 'local_edguidance');
+            $mform->addElement('select', 'source', self::label('source'), $options);
 
             foreach (array_keys($presets) as $slot) {
                 // Its checklist, if any, as the page will show it: a preset's boxes are never ticked.
@@ -207,12 +220,11 @@ class embed_form extends dynamic_form {
         $mform->addElement(
             'editor',
             'guidance_editor',
-            get_string('guidance', 'local_edguidance'),
+            self::label('guidance'),
             null,
             api::editor_options($context)
         );
         $mform->setType('guidance_editor', PARAM_RAW);
-        $mform->addHelpButton('guidance_editor', 'guidance', 'local_edguidance');
         if ($presets) {
             $mform->hideIf('guidance_editor', 'source', 'neq', 0);
         }

@@ -90,10 +90,10 @@ Feature: Teacher guidance in activity cards
       | groups   | bbbbbbbbbbbbbbbb | <p>Set up the groups.</p> | 1          | task           | Before week one |
       | reading  | cccccccccccccccc | <p>Skim chapter two.</p>  | 1          | recommendation |                 |
     When I am on the "Course 1" course page logged in as teacher1
-    Then I should see "Before week one" in the ".edguidance-task h5.edguidance-heading" "css_element"
-    And I should see "Task" in the "Groups page" "activity"
+    # A heading names the guidance in place of its category; without one, the category does.
+    Then I should see "Before week one" in the ".edguidance-task h5.edguidance-title" "css_element"
     And I should see "Recommendation" in the "Reading page" "activity"
-    And "h5.edguidance-heading" "css_element" should not exist in the "Reading page" "activity"
+    And "h5.edguidance-title" "css_element" should not exist in the "Reading page" "activity"
     And "Mark as read" "button" should not exist in the "Groups page" "activity"
     And "Mark as read" "button" should exist in the "Reading page" "activity"
     And I click on "Mark as complete" "button" in the "Groups page" "activity"
