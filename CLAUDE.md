@@ -67,6 +67,12 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
 * **"Dismissed" in code is "Mark as read" in the interface** - or "Mark as complete" for a task or an
   optional task (`category::is_task()`). Keep identifiers as they are; only strings say *read* or
   *complete*.
+* **A checklist's ticks are in the guidance text, and `checklist::markers()` is its only parser.**
+  Rendering and ticking must number items the same way; never find markers another way, and never
+  render checkboxes before `format_text()` (cleaning strips them) or number them after it (filters
+  drop text).
+* **`FORMAT_HTML` (and the other `FORMAT_*`) are strings.** Compare a stored format as
+  `(int)$format === (int)FORMAT_HTML`; a strict comparison with the bare constant never matches.
 * **The editor's preview lives in a shadow root on the token, never inside it.** Anything inside a
   token is saved into host text, and `token::PATTERN` stops at the first `</div>`, so the filter
   would strip only the start of it and students would see the rest.

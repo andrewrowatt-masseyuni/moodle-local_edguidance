@@ -39,6 +39,12 @@ $functions = [
         'type' => 'read',
         'ajax' => true,
     ],
+    'local_edguidance_set_checked' => [
+        'classname' => 'local_edguidance\external\set_checked',
+        'description' => 'Tick or untick an item on a guidance block\'s checklist, for every teacher.',
+        'type' => 'write',
+        'ajax' => true,
+    ],
     'local_edguidance_set_dismissed' => [
         'classname' => 'local_edguidance\external\set_dismissed',
         'description' => 'Mark a guidance block as read, or restore it, for the current user.',

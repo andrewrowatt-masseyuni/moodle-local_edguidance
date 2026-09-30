@@ -136,19 +136,25 @@ class guidance {
      * block's own text, which for a preset block is the snapshot taken when it was linked, flagged
      * as missing so the reader knows it may be stale; otherwise nothing.
      *
+     * A checklist in the text is shown as checkboxes (see checklist). They can be ticked only where
+     * the caller says so, and never in a preset block: the ticks are part of the text, and a
+     * preset's text is the whole site's.
+     *
      * @param \stdClass $row A local_edguidance row.
+     * @param bool $tickable Whether the current user may tick the block's checklist here.
      * @return \stdClass With ->content (HTML, possibly '') and ->missing (bool).
      */
-    public static function resolve(\stdClass $row): \stdClass {
+    public static function resolve(\stdClass $row, bool $tickable = false): \stdClass {
         $context = self::context_for($row);
         $missing = false;
+        $preset = (int)$row->presetslot > 0;
 
-        $preset = (int)$row->presetslot > 0 ? presets::get((int)$row->presetslot) : null;
-        if ($preset) {
-            $text = $preset->guidance;
+        $slot = $preset ? presets::get((int)$row->presetslot) : null;
+        if ($slot) {
+            $text = $slot->guidance;
             $format = FORMAT_HTML;
         } else {
-            $missing = (int)$row->presetslot > 0;
+            $missing = $preset;
             $format = (int)$row->guidanceformat;
             $text = file_rewrite_pluginfile_urls(
                 (string)$row->guidance,
@@ -169,7 +175,13 @@ class guidance {
         // block, which would otherwise recurse for as long as someone cared to nest them.
         self::$rendering++;
         try {
-            $content = format_text($text, $format, ['context' => $context]);
+            $content = checklist::format(
+                $text,
+                $format,
+                $context,
+                $tickable && !$preset,
+                $preset ? get_string('checklistpreset', 'local_edguidance') : ''
+            );
         } finally {
             self::$rendering--;
         }

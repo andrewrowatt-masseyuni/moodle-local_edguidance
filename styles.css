@@ -78,6 +78,8 @@ div.edguidance-embed[data-edguidance] {
     flex-wrap: wrap;
     gap: 0.25rem 0.5rem;
     margin-bottom: 0.5rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--edguidance-accent), 50% transparent);
+    padding-bottom: 0.25rem;
 }
 
 /* The category's name. Named as well as coloured, so the category does not rest on colour alone. */
@@ -112,7 +114,6 @@ div.edguidance-embed[data-edguidance] {
 /* "Only teachers see this" - reassures the teacher the aside is not on the student view. */
 .edguidance-scope {
     font-size: 0.75rem;
-    color: #626d71;
 }
 
 .edguidance .edguidance-dismiss {
@@ -149,6 +150,62 @@ div.edguidance-embed[data-edguidance] {
 
 .edguidance-body > :last-child {
     margin-bottom: 0;
+}
+
+/*
+ * A checklist (classes/checklist.php): each item a line of its own, indented 20px, its text wrapping
+ * clear of the box.
+ */
+.edguidance-body .edguidance-checkitem {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.3rem;
+    margin: 0 0 0.25rem 20px;
+    font-weight: inherit;
+}
+
+.edguidance .edguidance-body p:has(.edguidance-checkitem):has(+ p .edguidance-checkitem) {
+    /* stylelint-disable-next-line declaration-no-important */
+    margin-bottom: 0 !important;
+}
+
+.edguidance-body .edguidance-check {
+    flex: none;
+    margin: 0.3em 0 0;
+}
+
+.edguidance-body .edguidance-checkitem:has(> .edguidance-check:not(:disabled)) {
+    cursor: pointer;
+}
+
+.edguidance-body input[type="checkbox"].edguidance-check {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.25em;
+    height: 1.25em;
+    margin: 0.1em 0 0 0;
+    vertical-align: -0.25em;
+    color: var(--edguidance-ink);
+    border: 2px solid var(--edguidance-accent);
+    border-radius: 50%;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l3 3 5-6' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 80% no-repeat;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.edguidance-body input[type="checkbox"].edguidance-check:checked {
+    border-color: var(--edguidance-accent);
+    color: var(--edguidance-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l3 3 5-6' fill='none' stroke='%23222' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.edguidance-body input[type="checkbox"].edguidance-check:hover {
+    border-color: var(--edguidance-accent);
+}
+
+.edguidance-check:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
 }
 
 .edguidance .edguidance-missing {

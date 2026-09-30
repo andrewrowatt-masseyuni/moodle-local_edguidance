@@ -19,6 +19,7 @@ namespace local_edguidance\form;
 use core_form\dynamic_form;
 use local_edguidance\api;
 use local_edguidance\category;
+use local_edguidance\checklist;
 use local_edguidance\dismissed;
 use local_edguidance\presets;
 
@@ -156,7 +157,8 @@ class embed_form extends dynamic_form {
             $mform->addHelpButton('source', 'source', 'local_edguidance');
 
             foreach (array_keys($presets) as $slot) {
-                $preview = format_text(presets::get($slot)->guidance, FORMAT_HTML, ['context' => $context]);
+                // Its checklist, if any, as the page will show it: a preset's boxes are never ticked.
+                $preview = checklist::format(presets::get($slot)->guidance, FORMAT_HTML, $context, false);
                 $mform->addElement(
                     'static',
                     'preview' . $slot,
@@ -178,6 +180,7 @@ class embed_form extends dynamic_form {
             api::editor_options($context)
         );
         $mform->setType('guidance_editor', PARAM_RAW);
+        $mform->addHelpButton('guidance_editor', 'guidance', 'local_edguidance');
         if ($presets) {
             $mform->hideIf('guidance_editor', 'source', 'neq', 0);
         }

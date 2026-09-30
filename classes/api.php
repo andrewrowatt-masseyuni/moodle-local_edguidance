@@ -146,6 +146,9 @@ class api {
      * The category and heading are the block's own, preset or not, and are always saved as given:
      * a caller updating a block passes what it has now.
      *
+     * Logs guidance_created for a new block and guidance_updated for an existing one: one event per
+     * save, whatever changed, ticks written by hand into a checklist included.
+     *
      * @param \context $context The editor's context.
      * @param string|null $key The block to update, or null for a new one.
      * @param int $presetslot A site preset slot to use, or 0 for the block's own text.
@@ -179,6 +182,7 @@ class api {
         $now = time();
 
         $row = ($key !== null && $key !== '') ? self::get_embed($context, $key, $sectionid) : null;
+        $created = !$row;
         if (!$row) {
             $row = (object)[
                 'courseid' => $courseid,
@@ -227,7 +231,75 @@ class api {
         $DB->update_record('local_edguidance', $row);
         guidance::reset_cache();
 
+        $event = $created ? event\guidance_created::class : event\guidance_updated::class;
+        $event::create(['objectid' => $row->id, 'context' => $context])->trigger();
+
         return $row->embedkey;
+    }
+
+    /**
+     * Tick or untick one item of a block's checklist, for every teacher.
+     *
+     * The tick is written into the block's own text, under a lock so that two teachers ticking at
+     * once cannot each save over the other. The item is named by its position and the hash of its
+     * text, both as the page showed them: if the guidance has been edited since, so that the item
+     * there is not the one the teacher saw, nothing is changed.
+     *
+     * Logs checklist_item_checked or checklist_item_unchecked - but only if the item changed, so a
+     * box two teachers tick at once is logged once.
+     *
+     * Callers are responsible for the capability checks.
+     *
+     * @param int $guidanceid The block.
+     * @param int $index The item, numbered from 0.
+     * @param string $hash The item's hash, from the page.
+     * @param bool $checked Whether it should be ticked.
+     * @return bool Whether anything changed.
+     * @throws \moodle_exception If the block uses a preset, or the item is not the one on the page.
+     */
+    public static function set_checked(int $guidanceid, int $index, string $hash, bool $checked): bool {
+        global $DB;
+
+        $lock = \core\lock\lock_config::get_lock_factory('local_edguidance')->get_lock('checklist' . $guidanceid, 10);
+        if (!$lock) {
+            throw new \moodle_exception('locktimeout');
+        }
+
+        try {
+            $row = $DB->get_record('local_edguidance', ['id' => $guidanceid], '*', MUST_EXIST);
+            // A preset's text is the whole site's; its boxes are never offered for ticking.
+            if ((int)$row->presetslot > 0) {
+                throw new \moodle_exception('checklistpreset', 'local_edguidance');
+            }
+
+            $item = (int)$row->guidanceformat === (int)FORMAT_HTML
+                ? (checklist::items((string)$row->guidance)[$index] ?? null)
+                : null;
+            if (!$item || $item->hash !== $hash) {
+                throw new \moodle_exception('checklistchanged', 'local_edguidance');
+            }
+            if ($item->checked === $checked) {
+                return false;
+            }
+
+            $DB->update_record('local_edguidance', (object)[
+                'id' => $row->id,
+                'guidance' => checklist::set((string)$row->guidance, $index, $checked),
+                'timemodified' => time(),
+            ]);
+            guidance::reset_cache();
+        } finally {
+            $lock->release();
+        }
+
+        $event = $checked ? event\checklist_item_checked::class : event\checklist_item_unchecked::class;
+        $event::create([
+            'objectid' => $row->id,
+            'context' => guidance::context_for($row),
+            'other' => ['index' => $index, 'item' => shorten_text($item->text, 100)],
+        ])->trigger();
+
+        return true;
     }
 
     /**

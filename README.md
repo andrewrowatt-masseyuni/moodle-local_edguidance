@@ -5,7 +5,8 @@ in its activity card on the course page), in a book chapter, in a lesson page, o
 summary. Students never see it.
 
 Each piece of guidance is a **note**, a **recommendation**, a **task** or an **optional task**, each
-with its own colour, and can have a heading.
+with its own colour, and can have a heading. Any of them can hold a **checklist**, whose ticks are
+shared: a teacher ticks an item off, and every teacher sees it ticked.
 
 Each teacher can mark a piece of guidance as read once they have finished with it. From the next
 page load it is gone for them - from the page and from the editor - until they restore it from
@@ -64,7 +65,8 @@ Presets are optional: *Site administration > Plugins > Local plugins > Teacher g
 Who can read guidance is decided entirely by **View teacher guidance** (`local/edguidance:view`),
 given to the non-editing teacher, editing teacher and manager archetypes and withheld from students.
 Who can add it is **Add and edit teacher guidance** (`local/edguidance:manage`): editing teacher and
-manager.
+manager. Who can tick its checklists is **Tick items on teacher guidance checklists**
+(`local/edguidance:tick`): the same roles as *view*, so a non-editing teacher can tick off their part.
 
 ## Usage
 
@@ -104,6 +106,22 @@ to turn a linked preset into an editable copy by choosing *My own text*. The sam
 just for you - and, for guidance you have marked as read, **Restore**. Deleting it as you would any other
 block of text does the same as *Delete*, without asking. To move it, hover over it and use the up
 and down arrows at its bottom right, which move it past one paragraph (or other block) at a time.
+
+### Checklists
+
+Start each item on a line of its own with `[ ]` and a space:
+
+```
+[ ] Set the due date
+[ ] Check the groups
+```
+
+Write `[x]` for an item that starts ticked. The guidance form's help says the same.
+
+On the page each item is a checkbox, indented 20px. Ticking or unticking one is saved at once, for
+every teacher - the checklist is shared, not personal - and logged. A preset's checklist shows, but
+its boxes cannot be ticked: the preset is the whole site's. *Start with a preset* copies it into
+guidance of your own, which can be.
 
 ### Marking as read and restoring
 
@@ -179,7 +197,7 @@ two sections from sharing one.
 | `presetslot` | 0 for the block's own text; 1-10 to use that site preset. |
 | `category` | `note` (the default), `recommendation`, `task` or `optionaltask`. The block's own, preset or not. |
 | `heading` | Optional plain text shown above the guidance, or null. The block's own, preset or not. |
-| `guidance`, `guidanceformat` | Own text - or, for a preset block, a snapshot taken when it was linked. |
+| `guidance`, `guidanceformat` | Own text - or, for a preset block, a snapshot taken when it was linked. A checklist's ticks are part of it. |
 
 Files embedded in a block's own text live in filearea `guidance`, itemid = the row id, in the
 activity's context - the course's, for a section's block or a draft - served by
@@ -199,7 +217,8 @@ page can run the filter over a dozen descriptions, and one query per course keep
 
 Guidance text is formatted with the filters on, and `filter_edguidance` is one of them. While a block
 is being formatted `guidance::is_rendering()` is true and the filter strips any token instead of
-rendering a block inside a block.
+rendering a block inside a block. Formatting goes through `checklist::format()`, which is
+`format_text()` plus checkboxes for any checklist (see *Checklists*).
 
 ### Site presets
 
@@ -241,6 +260,65 @@ The heading is plain text (`PARAM_TEXT`, 255 characters), formatted with `format
 block's context by `guidance::format_heading()`, and shown as an `h5` above the guidance, sized to the
 aside rather than to the page's own `h5`. The dismissed guidance page shows it too, above the excerpt,
 since telling one block from another is what that page's excerpt is for.
+
+### Checklists
+
+A checklist is written in the guidance as lines starting `[ ]`, and **its ticks are part of the
+text**: ticking an item rewrites `[ ]` as `[x]` in the block's own `guidance`. That is what makes it
+shared - there is one text, so there is one set of ticks - and it needs no table of its own.
+
+An item is a marker - `[ ] `, `[x] ` or `[X] ` - at the start of a line: after the start of the text,
+a `<br>`, or the opening tag of a paragraph, list item or other block, with only spaces and inline
+tags between. Non-breaking spaces, which the editor writes freely, count as spaces. A marker anywhere
+else is text, and so is `- [ ] `: the line starts with the dash. There is deliberately no GitHub-style
+leading dash, which would fight TinyMCE's default text patterns (a typed "- " starts a bulleted
+list). Only `FORMAT_HTML` has checklists - it is what the editor writes and what
+presets hold.
+
+`checklist::markers()` is the **only parser**. Rendering numbers the items with it, and ticking finds
+the item to rewrite with it, so the page and the server cannot disagree about which item is which.
+The page also carries a hash of each item's text, and `api::set_checked()` refuses a tick whose item
+no longer has that number and text - the guidance was edited after the page loaded - with *This
+checklist has changed since the page was loaded*, rather than ticking whatever item is there now. The
+hash leaves out the tick itself, so one teacher's tick never makes another's page stale. The
+rewrite happens under a lock on the block, so two teachers ticking at once cannot each save over the
+other; a tick that changes nothing (both ticked the same item) is not saved or logged.
+
+Rendering (`checklist::format()`) swaps each marker for a random placeholder, formats the text, then
+swaps the placeholders for checkboxes. Not before formatting, because formatting cleans the text and
+cleaning removes form controls. Not by finding the markers again after, because a filter can drop
+text - multilang shows one language of several - and the survivors would be numbered wrongly. The
+nonce means nothing a teacher writes can pass for a placeholder. The swap parses the formatted HTML
+with `DOMDocument`, only when there is a checklist, to wrap each box and the rest of its line in a
+`<label>` - so the text names the box, and clicking it ticks - and to drop the `<br>` that ended the
+line. Each item is indented 20px (`styles.css`). An item in a bulleted list keeps its bullet: nothing
+treats list items specially.
+
+A box can be ticked where `block::render_row()` finds `local/edguidance:tick` and the block has its own
+text. It is disabled in a preset block - the text is the whole site's; the title says so - in the
+editor's preview, which is clicked to edit, and for anyone without the capability. The web service
+(`local_edguidance_set_checked`) checks *view* and *tick*, and refuses presets and drafts, itself.
+`amd/src/guidance.js` saves each tick as it is made, with the box disabled until it is saved, and puts
+the box back and shows why if it cannot be. A click on an item is stopped at the document, as
+*Mark as read* is (see *Dismissing*), but not prevented, so the box still ticks.
+
+Known limit: a multilang line holding one language's marker straight after another's -
+`<span lang="mi">[ ] Tahi</span><span lang="en">[ ] One</span>` - is one line with a marker in
+the middle, so only the first language's item is found. Put a line break at the end of each
+language's text, or give each language its own lines.
+
+### Logging
+
+| Event | When |
+| --- | --- |
+| `guidance_created` | Guidance is written: from the guidance form, or by *Use a preset*. |
+| `guidance_updated` | The guidance form saves existing guidance. One event per save, however much changed - including ticks added or removed by hand in the text, which are not logged item by item. |
+| `checklist_item_checked`, `checklist_item_unchecked` | A box is ticked or unticked on the page. `other` holds the item's position and its text, shortened, so the log says what was ticked. Ticking does not also log an update. |
+
+All four are logged in the block's context - its activity's, or its course's - at the teaching level,
+with the row as their object. Their URL is built from the event's own fields rather than its context,
+which may be gone by the time the log is read. Log restore does not map the row
+(`NOT_MAPPED`): activity blocks are mapped only once the whole restore is done, after the logs.
 
 ### Guidance in the activity card
 
@@ -455,7 +533,8 @@ and a section's blocks to its `section.xml`, which covers the same for sections 
 section is not a backup; see *Guidance in section summaries*). `embedkey` and `presetslot` are
 carried verbatim - the token in the restored text matches the same key - and so are `category` and
 `heading`. A backup from before those existed restores as a note with no heading, which is what the
-table's defaults make it.
+table's defaults make it. A checklist's ticks are in the text, so they travel with it: a course
+copied for its next run starts with this run's ticks.
 
 A section may be merged into one that already exists, so its restored summary decides what is
 restored: a block whose key is not in the summary (the existing section kept its own) is skipped; a
@@ -472,9 +551,11 @@ Dismissals are a preference of each user, not course content, and are not backed
 
 ### Privacy
 
-Blocks are course content and name nobody. The only personal data is which blocks a teacher has
-dismissed, in `core_favourites` in their own context; `privacy\provider` declares that link and
-exports and deletes only there.
+Blocks are course content and name nobody - a tick records nothing of who made it. The only personal
+data this plugin stores is which blocks a teacher has dismissed, in `core_favourites` in their own
+context; `privacy\provider` declares that link and exports and deletes only there. Who ticked what,
+and who wrote or edited guidance, is in the site's logs (see *Logging*), which the log stores' own
+privacy providers cover.
 
 ## Testing
 
@@ -492,7 +573,8 @@ book chapters and lesson pages; section summaries, in Boost and in Snap; adding 
 editor button, in a chapter and a section summary; the editor's preview, as it is added and edited,
 with a check each time that the guidance is not in the text the editor would save; dismissed
 guidance hidden in the editor, shown hatched on request, and restored from its form; deleting
-guidance from its form; and moving guidance up and down in the editor.
+guidance from its form; moving guidance up and down in the editor; and checklists - ticks shared
+between teachers and kept over a reload, none of it shown to students, and a preset's disabled.
 
 Four things to know when adding Behat coverage:
 

@@ -31,6 +31,8 @@ $string['categorynote'] = 'Note';
 $string['categoryoptionaltask'] = 'Optional task';
 $string['categoryrecommendation'] = 'Recommendation';
 $string['categorytask'] = 'Task';
+$string['checklistchanged'] = 'This checklist has changed since the page was loaded, so nothing was ticked. Reload the page to see it as it is now.';
+$string['checklistpreset'] = 'This checklist is part of a site guidance preset, so it cannot be ticked.';
 $string['completedconfirm'] = 'You have marked this task as complete. When you revisit this page, it will be removed.';
 $string['dismissed'] = 'Teacher guidance marked as read';
 $string['dismissed_desc'] = 'Teacher guidance you have marked as read is not shown to you anywhere in this course. Restore it to see it again. This only changes what you see, never what your colleagues see.';
@@ -38,10 +40,20 @@ $string['dismissedconfirm'] = 'You have marked this teacher guidance as read. Wh
 $string['dismissednone'] = 'You have not marked any teacher guidance as read in this course.';
 $string['dismissedundo'] = 'If you didn\'t mean to do that you can undo this action.';
 $string['edguidance:manage'] = 'Add and edit teacher guidance';
+$string['edguidance:tick'] = 'Tick items on teacher guidance checklists';
 $string['edguidance:view'] = 'View teacher guidance';
+$string['eventchecklistitemchecked'] = 'Teacher guidance checklist item ticked';
+$string['eventchecklistitemunchecked'] = 'Teacher guidance checklist item unticked';
+$string['eventguidancecreated'] = 'Teacher guidance created';
+$string['eventguidanceupdated'] = 'Teacher guidance updated';
 $string['formcompleted'] = 'You have marked this task as complete, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['formdismissed'] = 'You have marked this teacher guidance as read, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['guidance'] = 'Teacher guidance';
+$string['guidance_help'] = 'To add a checklist that teachers can tick, start each item on a line of its own with [ ] and a space, then the item:
+
+[ ] Set the due date
+
+Write [x] for an item that starts ticked. Ticks are shared: every teacher sees the same ones.';
 $string['guidancemissing'] = 'The site guidance preset this used is no longer available, so this may be out of date.';
 $string['heading'] = 'Heading';
 $string['markascomplete'] = 'Mark as complete';

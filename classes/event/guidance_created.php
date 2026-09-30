@@ -14,22 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_edguidance\event;
+
 /**
- * Version information for teacher guidance.
+ * Teacher guidance was written, from the editor's guidance form or by using a preset.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class guidance_created extends base {
+    /**
+     * Init method.
+     */
+    protected function init() {
+        parent::init();
+        $this->data['crud'] = 'c';
+    }
 
-defined('MOODLE_INTERNAL') || die();
+    /**
+     * The event's name.
+     *
+     * @return string
+     */
+    public static function get_name() {
+        return get_string('eventguidancecreated', 'local_edguidance');
+    }
 
-$plugin->component = 'local_edguidance';
-$plugin->release = '0.5.0';
-$plugin->version = 2026093001;
-$plugin->requires = 2024100700;
-// Pinned to 4.5 to match mod_edpreset and the rest of the ed* family, which are developed and tested
-// together. The afterlink technique in classes/local/card_injector.php leans on core internals
-// that a later release could move, so a wider range would be a claim nobody has tested.
-$plugin->supported = [405, 405];
-$plugin->maturity = MATURITY_BETA;
+    /**
+     * What happened.
+     *
+     * @return string
+     */
+    public function get_description() {
+        return "The user with id '{$this->userid}' created the teacher guidance with id '{$this->objectid}'.";
+    }
+}

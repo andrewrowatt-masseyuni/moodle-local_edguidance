@@ -82,7 +82,9 @@ class block implements \renderable, \templatable {
     /**
      * Render one row, or nothing if it has nothing to say or the current user has dismissed it.
      *
-     * Callers are responsible for the capability check: this renders for whoever asks.
+     * Callers are responsible for the capability check: this renders for whoever asks. The one
+     * check made here is whether the reader may tick the block's checklist, which only changes
+     * whether its boxes are enabled.
      *
      * The output never contains the token attribute, which is what makes a second filter pass over
      * already-filtered text a no-op. mod_lesson does exactly that to page contents shown as
@@ -99,7 +101,8 @@ class block implements \renderable, \templatable {
             return '';
         }
 
-        $resolved = guidance::resolve($row);
+        $tickable = has_capability('local/edguidance:tick', guidance::context_for($row));
+        $resolved = guidance::resolve($row, $tickable);
         if ($resolved->content === '' && !$resolved->missing) {
             return '';
         }
@@ -110,8 +113,8 @@ class block implements \renderable, \templatable {
     }
 
     /**
-     * Render one row as the editor previews it: in full, with no buttons, because a click anywhere
-     * on it opens the block's form.
+     * Render one row as the editor previews it: in full, with no buttons and its checklist's boxes
+     * disabled, because a click anywhere on it opens the block's form.
      *
      * Unlike render_row(), never renders nothing, and ignores dismissal. The preview is what a
      * teacher clicks to edit or see the block, so a block with nothing to say, or a token with no
