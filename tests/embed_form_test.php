@@ -75,14 +75,14 @@ final class embed_form_test extends \advanced_testcase {
     }
 
     /**
-     * A course with a book, and an editing teacher on it.
+     * A course with a book, and a manager on it.
      *
      * @return array [course, book context]
      */
     private function setup_book(): array {
         $course = $this->getDataGenerator()->create_course();
         $book = $this->getDataGenerator()->create_module('book', ['course' => $course->id]);
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         return [$course, \context_module::instance($book->cmid)];
     }
@@ -227,8 +227,21 @@ final class embed_form_test extends \advanced_testcase {
         $this->assertStringContainsString('Edited.', $DB->get_field('local_edguidance', 'guidance', ['id' => $row->id]));
         $this->assertTrue(dismissed::is_dismissed((int)$row->id));
 
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
         $this->assertStringNotContainsString($notice, $this->open(['contextid' => $context->id, 'key' => $row->embedkey]));
+    }
+
+    /**
+     * An editing teacher cannot open the form: writing guidance is for managers.
+     */
+    public function test_editing_teachers_cannot_write_guidance(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', ['course' => $course->id]);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $this->expectException(\required_capability_exception::class);
+        $this->open(['contextid' => \context_module::instance($book->cmid)->id]);
     }
 
     /**
@@ -265,7 +278,7 @@ final class embed_form_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $section = get_fast_modinfo($course)->get_section_info(1);
         $context = \context_course::instance($course->id);
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $this->assertStringContainsString('name="sectionid" type="hidden" value="' . $section->id . '"', $this->open([
             'contextid' => $context->id,

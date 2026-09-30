@@ -60,7 +60,7 @@ final class events_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
         $context = \context_module::instance($page->cmid);
-        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'manager');
         $this->setUser($teacher);
 
         $sink = $this->redirectEvents();
@@ -96,7 +96,7 @@ final class events_test extends \advanced_testcase {
         $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(1, 'Dates', '<p>Dates.</p>');
         $course = $this->getDataGenerator()->create_course();
         $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $sink = $this->redirectEvents();
         embed_preset::execute(\context_module::instance($page->cmid)->id, 1);
@@ -112,7 +112,7 @@ final class events_test extends \advanced_testcase {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
         $context = \context_course::instance($course->id);
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $sink = $this->redirectEvents();
         api::save_embed($context, null, 0, $this->editor('<p>For this week.</p>'), (int)get_fast_modinfo($course->id)

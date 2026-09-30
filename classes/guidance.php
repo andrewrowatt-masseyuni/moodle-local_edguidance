@@ -142,7 +142,8 @@ class guidance {
      *
      * @param \stdClass $row A local_edguidance row.
      * @param bool $tickable Whether the current user may tick the block's checklist here.
-     * @return \stdClass With ->content (HTML, possibly '') and ->missing (bool).
+     * @return \stdClass With ->content (HTML, possibly ''), ->missing (bool) and ->complete (bool: it
+     *     shows a checklist, and every item is ticked).
      */
     public static function resolve(\stdClass $row, bool $tickable = false): \stdClass {
         $context = self::context_for($row);
@@ -167,7 +168,7 @@ class guidance {
         }
 
         if (html_is_blank($text)) {
-            return (object)['content' => '', 'missing' => $missing];
+            return (object)['content' => '', 'missing' => $missing, 'complete' => false];
         }
 
         // Filters run over the guidance itself, and filter_edguidance among them. It asks
@@ -175,7 +176,7 @@ class guidance {
         // block, which would otherwise recurse for as long as someone cared to nest them.
         self::$rendering++;
         try {
-            $content = checklist::format(
+            $formatted = checklist::format_with_tally(
                 $text,
                 $format,
                 $context,
@@ -186,7 +187,11 @@ class guidance {
             self::$rendering--;
         }
 
-        return (object)['content' => $content, 'missing' => $missing];
+        return (object)[
+            'content' => $formatted->html,
+            'missing' => $missing,
+            'complete' => $formatted->items > 0 && $formatted->ticked === $formatted->items,
+        ];
     }
 
     /**

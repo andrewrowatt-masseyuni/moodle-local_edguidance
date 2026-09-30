@@ -51,6 +51,9 @@ $capabilities = [
      * this is a write, but a narrow one: it changes only what is between an item's square brackets,
      * never any text, so it carries no XSS risk. Given to the same roles as view, so a non-editing
      * teacher can tick off their part; take it away to leave ticking to the editing teachers.
+     *
+     * In the editor, it is also what lets a teacher tick, and mark guidance as read or complete,
+     * without opening the guidance: the preview's controls are offered to holders of this.
      */
     'local/edguidance:tick' => [
         'captype' => 'write',
@@ -62,16 +65,22 @@ $capabilities = [
         ],
     ],
 
-    // Who can add and edit guidance blocks. RISK_XSS because the guidance is rich text rendered to
-    // other teachers.
+    /*
+     * Who can add, edit and move guidance blocks. RISK_XSS because the guidance is rich text rendered
+     * to other teachers.
+     *
+     * Managers only: guidance is written centrally, and the teachers running a course work through it
+     * - they tick its checklists and mark it as read or complete - rather than rewrite it. No
+     * clonepermissionsfrom, which would copy course:manageactivities and so hand it to every editing
+     * teacher regardless. Sites installed before this have it taken back from editing teachers by
+     * db/upgrade.php, where it is still the default.
+     */
     'local/edguidance:manage' => [
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [
-            'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW,
         ],
-        'clonepermissionsfrom' => 'moodle/course:manageactivities',
     ],
 ];

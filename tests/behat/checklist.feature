@@ -44,6 +44,18 @@ Feature: Checklists in teacher guidance
     # Ticking is not dismissing: the guidance is all still there.
     And I should see "Set the due date" in the "Setup page" "activity"
 
+  @javascript
+  Scenario: Guidance turns green once its whole checklist is ticked
+    Given I am on the "Course 1" course page logged in as teacher2
+    And ".edguidance-complete" "css_element" should not exist in the "Setup page" "activity"
+    When I click on "Set the due date" "checkbox" in the "Setup page" "activity"
+    And I click on "Check the groups" "checkbox" in the "Setup page" "activity"
+    Then ".edguidance-complete" "css_element" should exist in the "Setup page" "activity"
+    And I reload the page
+    And ".edguidance-complete" "css_element" should exist in the "Setup page" "activity"
+    And I click on "Book the room" "checkbox" in the "Setup page" "activity"
+    And ".edguidance-complete" "css_element" should not exist in the "Setup page" "activity"
+
   Scenario: Students see none of the checklist
     When I am on the "Course 1" course page logged in as student1
     Then I should see "Read this first." in the "Setup page" "activity"

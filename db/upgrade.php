@@ -50,5 +50,26 @@ function xmldb_local_edguidance_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026093000, 'local', 'edguidance');
     }
 
+    if ($oldversion < 2026100100) {
+        // Adding, editing and moving guidance is for managers now, not editing teachers. Taken back only
+        // where install put it - allowed at site level for an editing-teacher role - so overrides in
+        // courses and categories are left alone. (A site-level allow looks the same whether install or
+        // an administrator made it; an administrator who wants it back grants it again.)
+        $systemcontext = context_system::instance();
+        foreach (get_archetype_roles('editingteacher') as $role) {
+            $allowed = $DB->record_exists('role_capabilities', [
+                'roleid' => $role->id,
+                'contextid' => $systemcontext->id,
+                'capability' => 'local/edguidance:manage',
+                'permission' => CAP_ALLOW,
+            ]);
+            if ($allowed) {
+                unassign_capability('local/edguidance:manage', $role->id, $systemcontext->id);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026100100, 'local', 'edguidance');
+    }
+
     return true;
 }

@@ -13,9 +13,10 @@ Feature: Teacher guidance in section summaries
       | teacher1 | Editing   | Teacher  |
       | teacher2 | Other     | Teacher  |
       | student1 | Sam       | Student  |
+    # Writing guidance is for managers; editing teachers only work through it.
     And the following "course enrolments" exist:
       | user     | course | role           |
-      | teacher1 | C1     | editingteacher |
+      | teacher1 | C1     | manager        |
       | teacher2 | C1     | teacher        |
       | student1 | C1     | student        |
     And the following "local_edguidance > section blocks" exist:

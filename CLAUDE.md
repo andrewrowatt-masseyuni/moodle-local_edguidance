@@ -53,6 +53,9 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
 
 ## Traps
 
+* **Writing guidance is `manage`, and that is managers only.** Editing teachers hold `view` and
+  `tick`: they tick and mark guidance, on the page and in the editor, and nothing more. Tests and
+  Behat that write guidance enrol a `manager`.
 * **Students are kept out by `local/edguidance:view` alone.** Every render path checks it: the
   filter, `card_injector`, `local_edguidance_pluginfile()`, the web services. There is no second
   line of defence.
@@ -73,6 +76,8 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
   drop text).
 * **`FORMAT_HTML` (and the other `FORMAT_*`) are strings.** Compare a stored format as
   `(int)$format === (int)FORMAT_HTML`; a strict comparison with the bare constant never matches.
+* **Preview handlers run in the page's window; preview elements are the editor iframe's.**
+  `instanceof Element` is always false across the two - test with `.closest`.
 * **The editor's preview lives in a shadow root on the token, never inside it.** Anything inside a
   token is saved into host text, and `token::PATTERN` stops at the first `</div>`, so the filter
   would strip only the start of it and students would see the rest.

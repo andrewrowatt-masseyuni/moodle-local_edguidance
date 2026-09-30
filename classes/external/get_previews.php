@@ -33,8 +33,11 @@ use local_edguidance\output\block;
  *
  * Blocks are looked up as the guidance form looks them up - within the editor's context, by
  * api::get_embeds() - so a token copied in from elsewhere previews as the notice the filter will
- * show there, and a draft on the "add an activity" form previews at all. That last is why this
- * needs manage rather than view: drafts are only ever seen by whoever is writing them.
+ * show there, and a draft on the "add an activity" form previews at all.
+ *
+ * Anyone who may read guidance gets previews: an editing teacher who cannot edit the guidance
+ * still edits the text around it, and ticks and marks it there (see output\block::render_preview()).
+ * Drafts are the exception, and need manage: they are only ever seen by whoever is writing them.
  *
  * A block the current user has dismissed is rendered in full and flagged. The editor hides it unless
  * the teacher asks to see dismissed guidance, which it can then do without asking again.
@@ -80,7 +83,9 @@ class get_previews extends external_api {
 
         $context = \context::instance_by_id($contextid);
         self::validate_context($context);
-        require_capability('local/edguidance:manage', $context);
+        [, $cmid, $sectionid] = api::embed_target($context, $sectionid);
+        $isdraft = !$cmid && !$sectionid;
+        require_capability($isdraft ? 'local/edguidance:manage' : 'local/edguidance:view', $context);
 
         $keys = array_values(array_unique($keys));
         $rows = api::get_embeds($context, $keys, $sectionid);

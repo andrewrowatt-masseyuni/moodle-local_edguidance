@@ -11,9 +11,10 @@ Feature: Adding teacher guidance from the editor
     And the following "users" exist:
       | username | firstname | lastname |
       | teacher1 | Tina      | Teacher  |
+    # Writing guidance is for managers; editing teachers only work through it.
     And the following "course enrolments" exist:
       | user     | course | role           |
-      | teacher1 | C1     | editingteacher |
+      | teacher1 | C1     | manager        |
     And the following "activities" exist:
       | activity | course | idnumber | name        |
       | book     | C1     | book1    | Course book |
@@ -42,6 +43,26 @@ Feature: Adding teacher guidance from the editor
     And I press "Save changes"
     And I should see "Chapter text."
     And I should see "My own words for this chapter."
+
+  @javascript
+  Scenario: Add a task from the guidance editor's own menu
+    Given I am on the "Course book" "book activity" page logged in as teacher1
+    And I turn editing mode on
+    And I follow "Edit chapter \"1. Chapter 1\""
+    And I expand all toolbars for the "Content" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Content" TinyMCE editor
+    And I click on "[role^='menuitem'][aria-label='Start with blank']" "css_element"
+    And I set the field "Teacher guidance" to "<p>Before week one:</p>"
+    When I expand all toolbars for the "Teacher guidance" TinyMCE editor
+    And I click on the "Teacher guidance" button for the "Teacher guidance" TinyMCE editor
+    # In the guidance editor it adds tasks, and nothing else.
+    Then "[role^='menuitem'][aria-label='Start with blank']" "css_element" should not exist
+    And I click on "[role^='menuitem'][aria-label='Add task']" "css_element"
+    And I click on "Save changes" "button" in the "Teacher guidance" "dialogue"
+    And the "Content" TinyMCE editor should preview guidance "Task name"
+    And I press "Save changes"
+    And I should see "Before week one:"
+    And the field "Task name" matches value "0"
 
   @javascript
   Scenario: Use a preset

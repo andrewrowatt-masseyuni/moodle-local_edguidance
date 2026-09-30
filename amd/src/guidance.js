@@ -23,7 +23,11 @@
  *
  * A checklist's ticks are shared by every teacher and kept in the guidance itself, so a tick is
  * saved as it is made. If it cannot be - the guidance has been edited since the page was loaded,
- * say - the box goes back to how it was and the reason is shown.
+ * say - the box goes back to how it was and the reason is shown. Once every item is ticked the
+ * block is dressed as complete, as the server would have dressed it.
+ *
+ * tick() and dismiss() also serve tiny_edguidance, whose previews are the same markup inside the
+ * editor, where these document-level listeners cannot reach.
  *
  * Every listener is delegated from the document, once per page, so blocks that arrive after the
  * page has loaded - a course page card re-rendered over AJAX - work without re-initialising.
@@ -45,6 +49,7 @@ const SELECTORS = {
     UNDO: '[data-action="edguidance-undo"]',
     CHECK: '[data-action="edguidance-check"]',
     CHECKITEM: '.edguidance-checkitem',
+    BOX: '.edguidance-check',
 };
 
 let initialised = false;
@@ -82,14 +87,15 @@ const setChecked = (guidanceid, box) => fetchMany([{
  * Save a tick as it is made, or put the box back if it cannot be saved.
  *
  * The box is disabled while the tick is saved, so that a second click cannot race the first; and
- * focus, which disabling takes away, is given back.
+ * focus, which disabling takes away, is given back. Focus is asked of the box's own root, which in
+ * the editor is a shadow root rather than the document.
  *
  * @param {HTMLElement} block The block root.
  * @param {HTMLInputElement} box The item's checkbox.
  */
-const tick = async(block, box) => {
+export const tick = async(block, box) => {
     const pending = new Pending('local_edguidance/guidance:setchecked');
-    const focused = document.activeElement === box;
+    const focused = box.getRootNode().activeElement === box;
     box.disabled = true;
 
     try {
@@ -103,6 +109,10 @@ const tick = async(block, box) => {
     if (focused) {
         box.focus();
     }
+
+    const boxes = Array.from(block.querySelectorAll(SELECTORS.BOX));
+    block.classList.toggle('edguidance-complete', boxes.length > 0 && boxes.every((each) => each.checked));
+
     pending.resolve();
 };
 
@@ -133,18 +143,22 @@ const showState = (block, dismissed) => {
  *
  * @param {HTMLElement} block The block root.
  * @param {boolean} dismissed Whether it should be dismissed.
+ * @returns {Promise<boolean>} Whether the choice was recorded.
  */
-const apply = async(block, dismissed) => {
+export const dismiss = async(block, dismissed) => {
     const pending = new Pending('local_edguidance/guidance:setdismissed');
+    let recorded = false;
 
     try {
         await setDismissed(parseInt(block.dataset.guidanceid, 10), dismissed);
         showState(block, dismissed);
+        recorded = true;
     } catch (error) {
         Notification.exception(error);
     }
 
     pending.resolve();
+    return recorded;
 };
 
 /**
@@ -177,7 +191,7 @@ export const init = () => {
         event.preventDefault();
         event.stopPropagation();
 
-        apply(block, control.matches(SELECTORS.DISMISS));
+        dismiss(block, control.matches(SELECTORS.DISMISS));
     }, true);
 
     document.addEventListener('change', (event) => {

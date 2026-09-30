@@ -103,9 +103,32 @@ class checklist {
      * @return string HTML.
      */
     public static function format(string $text, int $format, \context $context, bool $tickable, string $title = ''): string {
+        return self::format_with_tally($text, $format, $context, $tickable, $title)->html;
+    }
+
+    /**
+     * format(), and a count of the items it shows and how many of them are ticked.
+     *
+     * Counted from what is shown rather than from the text, so an item a filter left out - the
+     * other language, under multilang - counts for nothing either way.
+     *
+     * @param string $text The text.
+     * @param int $format Its format. Only FORMAT_HTML has checklists.
+     * @param \context $context The context to format it in.
+     * @param bool $tickable Whether the boxes can be ticked here. Otherwise they are disabled.
+     * @param string $title What a disabled box says when pointed at, or '' for nothing.
+     * @return \stdClass With ->html, ->items and ->ticked.
+     */
+    public static function format_with_tally(
+        string $text,
+        int $format,
+        \context $context,
+        bool $tickable,
+        string $title = ''
+    ): \stdClass {
         $markers = $format == FORMAT_HTML ? self::markers($text) : [];
         if (!$markers) {
-            return format_text($text, $format, ['context' => $context]);
+            return (object)['html' => format_text($text, $format, ['context' => $context]), 'items' => 0, 'ticked' => 0];
         }
 
         // Nobody writing guidance can know it, so nothing they write can pass for a placeholder.
@@ -174,12 +197,13 @@ class checklist {
      * @param \stdClass[] $markers The markers they stand for.
      * @param bool $tickable Whether the boxes can be ticked.
      * @param string $title What a disabled box says when pointed at.
-     * @return string HTML.
+     * @return \stdClass With ->html, ->items (how many boxes it shows) and ->ticked (how many ticked).
      */
-    protected static function render(string $html, string $nonce, array $markers, bool $tickable, string $title): string {
+    protected static function render(string $html, string $nonce, array $markers, bool $tickable, string $title): \stdClass {
+        $tally = (object)['html' => $html, 'items' => 0, 'ticked' => 0];
         $pattern = '~edgcheck' . $nonce . 'n(\d+)z~';
         if (!preg_match($pattern, $html)) {
-            return $html;
+            return $tally;
         }
 
         $doc = new \DOMDocument();
@@ -192,7 +216,11 @@ class checklist {
         $root = $doc->getElementsByTagName('body')->item(0)->firstChild;
         $xpath = new \DOMXPath($doc);
         foreach (iterator_to_array($xpath->query('.//text()[contains(., "edgcheck' . $nonce . '")]', $root)) as $node) {
-            self::place($doc, $node, $pattern, $markers, $tickable, $title);
+            $checked = self::place($doc, $node, $pattern, $markers, $tickable, $title);
+            if ($checked !== null) {
+                $tally->items++;
+                $tally->ticked += (int)$checked;
+            }
         }
 
         $out = '';
@@ -201,7 +229,9 @@ class checklist {
         }
 
         // A placeholder anywhere but a text node - there should be none - must not show.
-        return preg_replace($pattern, '', $out);
+        $tally->html = preg_replace($pattern, '', $out);
+
+        return $tally;
     }
 
     /**
@@ -213,6 +243,7 @@ class checklist {
      * @param \stdClass[] $markers The markers they stand for.
      * @param bool $tickable Whether the box can be ticked.
      * @param string $title What a disabled box says when pointed at.
+     * @return bool|null Whether the box it placed is ticked, or null if it placed none.
      */
     protected static function place(
         \DOMDocument $doc,
@@ -221,9 +252,9 @@ class checklist {
         array $markers,
         bool $tickable,
         string $title
-    ): void {
+    ): ?bool {
         if (!preg_match($pattern, $node->data, $match, PREG_OFFSET_CAPTURE)) {
-            return;
+            return null;
         }
         $index = (int)$match[1][0];
         $marker = $markers[$index] ?? null;
@@ -231,7 +262,7 @@ class checklist {
         $node->data = substr($node->data, 0, $match[0][1]);
         if (!$marker) {
             $node->parentNode->insertBefore($doc->createTextNode($after), $node->nextSibling);
-            return;
+            return null;
         }
 
         $box = $doc->createElement('input');
@@ -279,5 +310,7 @@ class checklist {
             }
             $words->appendChild($next);
         }
+
+        return $marker->checked;
     }
 }

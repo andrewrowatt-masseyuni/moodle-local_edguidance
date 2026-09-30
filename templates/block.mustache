@@ -29,17 +29,24 @@
     for, and mod_lesson runs some text through the filters twice.
 
     The category is named in the header as well as coloured, so that it does not rest on colour alone.
-    A task, optional or not, is marked as complete rather than as read.
+    A task, optional or not, is marked as complete rather than as read. A block whose checklist is all
+    ticked is dressed as complete, whatever its category.
+
+    The editor previews blocks with this too. There, a teacher who may tick gets the same buttons as
+    the page - or Restore, on a block they have already marked - and anyone else gets none, because a
+    click on the preview opens the guidance form.
 
     Context variables required for this template:
     * id int - local_edguidance.id
     * category string - note, recommendation, task or optionaltask
     * categoryname string - the category's name, for people
     * task bool - marked as complete rather than as read
+    * complete bool - it has a checklist, and every item is ticked
     * heading string - already formatted by format_string(), rendered unescaped; '' for none
     * body string - already formatted HTML, rendered unescaped
     * missing bool - the preset it used has gone, so the body is a possibly stale copy
-    * preview bool - for the editor's preview: no buttons, because a click anywhere on it edits it
+    * dismissable bool - offer to mark it as read or complete, with the confirmation and undo
+    * restorable bool - offer to restore it, in the editor, where it has already been marked
 
     Example context (json):
     {
@@ -47,21 +54,26 @@
         "category": "task",
         "categoryname": "Task",
         "task": true,
+        "complete": false,
         "heading": "Before the course opens",
         "body": "<p>Set the due date before releasing this to students.</p>",
         "missing": false,
-        "preview": false
+        "dismissable": true,
+        "restorable": false
     }
 }}
-<div class="edguidance edguidance-{{category}}" data-region="edguidance" data-guidanceid="{{id}}">
+<div class="edguidance edguidance-{{category}}{{#complete}} edguidance-complete{{/complete}}" data-region="edguidance" data-guidanceid="{{id}}">
     <div class="edguidance-card">
         <div class="edguidance-header">
             <span class="edguidance-title">{{categoryname}}</span>
             <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
-            {{^preview}}
+            {{#dismissable}}
             <button type="button" class="btn btn-link btn-sm edguidance-dismiss" data-action="edguidance-dismiss"
                 data-region="edguidance-live">{{#pix}} t/markasread, core {{/pix}}{{#task}}{{#str}} markascomplete, local_edguidance {{/str}}{{/task}}{{^task}}{{#str}} markasread, local_edguidance {{/str}}{{/task}}</button>
-            {{/preview}}
+            {{/dismissable}}
+            {{#restorable}}
+            <button type="button" class="btn btn-link btn-sm edguidance-restore" data-action="edguidance-restore">{{#pix}} e/undo, core {{/pix}}{{#str}} restore, local_edguidance {{/str}}</button>
+            {{/restorable}}
         </div>
         <div data-region="edguidance-live">
             {{#heading}}
@@ -72,7 +84,7 @@
             {{/missing}}
             <div class="edguidance-body">{{{body}}}</div>
         </div>
-        {{^preview}}
+        {{#dismissable}}
         <div class="edguidance-confirm" data-region="edguidance-dismissed" hidden>
             {{#task}}{{#str}} completedconfirm, local_edguidance {{/str}}{{/task}}
             {{^task}}{{#str}} dismissedconfirm, local_edguidance {{/str}}{{/task}}
@@ -81,6 +93,6 @@
                 {{#str}} undo, local_edguidance {{/str}}
             </button>
         </div>
-        {{/preview}}
+        {{/dismissable}}
     </div>
 </div>

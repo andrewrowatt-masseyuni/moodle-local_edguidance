@@ -114,7 +114,7 @@ final class external_test extends \advanced_testcase {
         $this->resetAfterTest();
         $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(1, 'Dates', '<p>Dates.</p>');
         [$course, $book] = $this->make_block();
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $key = embed_preset::execute(\context_module::instance($book->cmid)->id, 1)['key'];
 
@@ -123,13 +123,25 @@ final class external_test extends \advanced_testcase {
     }
 
     /**
-     * A non-editing teacher can read guidance but not add it.
+     * Teachers, editing or not, can read guidance but not add it.
+     *
+     * @return array
      */
-    public function test_embed_preset_needs_manage(): void {
+    public static function teachers_provider(): array {
+        return ['non-editing teacher' => ['teacher'], 'editing teacher' => ['editingteacher']];
+    }
+
+    /**
+     * Teachers, editing or not, can read guidance but not add it: that is for managers.
+     *
+     * @dataProvider teachers_provider
+     * @param string $role The teacher's role.
+     */
+    public function test_embed_preset_needs_manage(string $role): void {
         $this->resetAfterTest();
         $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(1, 'Dates', '<p>Dates.</p>');
         [$course, $book] = $this->make_block();
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'teacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, $role));
 
         $this->expectException(\required_capability_exception::class);
         embed_preset::execute(\context_module::instance($book->cmid)->id, 1);
@@ -141,7 +153,7 @@ final class external_test extends \advanced_testcase {
     public function test_embed_preset_refuses_an_unused_slot(): void {
         $this->resetAfterTest();
         [$course, $book] = $this->make_block();
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $this->expectException(\invalid_parameter_exception::class);
         embed_preset::execute(\context_module::instance($book->cmid)->id, 9);
@@ -176,7 +188,7 @@ final class external_test extends \advanced_testcase {
         $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(1, 'Dates', '<p>Dates.</p>');
         $course = $this->getDataGenerator()->create_course();
         $section = get_fast_modinfo($course)->get_section_info(1);
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $key = embed_preset::execute(\context_course::instance($course->id)->id, 1, (int)$section->id)['key'];
 
@@ -193,7 +205,7 @@ final class external_test extends \advanced_testcase {
         $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(1, 'Dates', '<p>Dates.</p>');
         $course = $this->getDataGenerator()->create_course();
         $other = $this->getDataGenerator()->create_course();
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $this->expectException(\invalid_parameter_exception::class);
         embed_preset::execute(
@@ -204,8 +216,9 @@ final class external_test extends \advanced_testcase {
     }
 
     /**
-     * Previews for every key asked, once each, in order: own text and a preset in full, with no
-     * buttons, and a key with no block here as the notice the filter shows.
+     * Previews for every key asked, once each, in order: own text and a preset in full, and a key
+     * with no block here as the notice the filter shows. An editing teacher, who may tick, gets the
+     * page's own button to mark it as read.
      */
     public function test_get_previews(): void {
         $this->resetAfterTest();
@@ -227,8 +240,9 @@ final class external_test extends \advanced_testcase {
 
         $this->assertStringContainsString('Check the due date before releasing this.', $previews[0]['html']);
         $this->assertStringContainsString('edguidance-card', $previews[0]['html']);
-        $this->assertStringNotContainsString('edguidance-dismiss', $previews[0]['html']);
-        $this->assertStringNotContainsString('edguidance-undo', $previews[0]['html']);
+        $this->assertStringContainsString('data-action="edguidance-dismiss"', $previews[0]['html']);
+        $this->assertStringContainsString('data-action="edguidance-undo"', $previews[0]['html']);
+        $this->assertStringNotContainsString('data-action="edguidance-restore"', $previews[0]['html']);
 
         // The preset as it stands, not the snapshot.
         $this->assertStringContainsString('Check the dates.', $previews[1]['html']);
@@ -239,7 +253,8 @@ final class external_test extends \advanced_testcase {
 
     /**
      * A block the teacher has dismissed previews in full, flagged, for the editor to hide unless
-     * they ask to see it. Dismissing is personal, so it is not flagged for a colleague.
+     * they ask to see it, and offering to restore it. Dismissing is personal, so it is not flagged
+     * for a colleague.
      */
     public function test_get_previews_flag_a_dismissed_block(): void {
         $this->resetAfterTest();
@@ -254,7 +269,10 @@ final class external_test extends \advanced_testcase {
 
         $this->assertTrue($previews[0]['dismissed']);
         $this->assertStringContainsString('Check the due date before releasing this.', $previews[0]['html']);
-        $this->assertStringNotContainsString('edguidance-undo', $previews[0]['html']);
+        // Already marked, so it offers to restore it rather than to mark it again.
+        $this->assertStringContainsString('data-action="edguidance-restore"', $previews[0]['html']);
+        $this->assertStringNotContainsString('data-action="edguidance-dismiss"', $previews[0]['html']);
+        $this->assertStringNotContainsString('data-action="edguidance-undo"', $previews[0]['html']);
         // A token with no block here has nothing to have dismissed.
         $this->assertFalse($previews[1]['dismissed']);
 
@@ -278,7 +296,7 @@ final class external_test extends \advanced_testcase {
         $draft = $generator->create_block(['courseid' => $course->id]);
         $coursecontext = \context_course::instance($course->id)->id;
         $notfound = get_string('previewnotfound', 'local_edguidance');
-        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
 
         $preview = fn(int $contextid, \stdClass $block, int $sectionid = 0): string =>
             get_previews::execute($contextid, [$block->embedkey], $sectionid)[0]['html'];
@@ -348,15 +366,57 @@ final class external_test extends \advanced_testcase {
     }
 
     /**
-     * Only people who may write guidance are shown the preview: a non-editing teacher has no
-     * editor to preview in, and a student none at all.
+     * Without the tick capability, the preview offers no buttons: nothing to mark, nothing to
+     * restore.
      */
-    public function test_get_previews_needs_manage(): void {
+    public function test_get_previews_without_tick_have_no_buttons(): void {
+        global $DB;
+
         $this->resetAfterTest();
         [$course, $book, $row] = $this->make_block();
+        $context = \context_module::instance($book->cmid);
+        $roleid = (int)$DB->get_field('role', 'id', ['shortname' => 'editingteacher']);
+        assign_capability('local/edguidance:tick', CAP_PROHIBIT, $roleid, $context->id);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
+
+        $html = get_previews::execute($context->id, [$row->embedkey])[0]['html'];
+        dismissed::set((int)$row->id, true);
+        $dismissed = get_previews::execute($context->id, [$row->embedkey])[0]['html'];
+
+        foreach ([$html, $dismissed] as $preview) {
+            $this->assertStringContainsString('Check the due date before releasing this.', $preview);
+            $this->assertStringNotContainsString('data-action="edguidance-', $preview);
+        }
+    }
+
+    /**
+     * Anyone who may read guidance gets previews - an editing teacher edits the text around it -
+     * but a student does not.
+     */
+    public function test_get_previews_need_view(): void {
+        $this->resetAfterTest();
+        [$course, $book, $row] = $this->make_block();
+        $contextid = \context_module::instance($book->cmid)->id;
+
         $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'teacher'));
+        $this->assertCount(1, get_previews::execute($contextid, [$row->embedkey]));
+
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'student'));
+        $this->expectException(\required_capability_exception::class);
+        get_previews::execute($contextid, [$row->embedkey]);
+    }
+
+    /**
+     * A draft is only ever seen by whoever is writing it, so the "add an activity" form's previews
+     * need manage.
+     */
+    public function test_get_previews_of_drafts_need_manage(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $draft = $this->getDataGenerator()->get_plugin_generator('local_edguidance')->create_block(['courseid' => $course->id]);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
 
         $this->expectException(\required_capability_exception::class);
-        get_previews::execute(\context_module::instance($book->cmid)->id, [$row->embedkey]);
+        get_previews::execute(\context_course::instance($course->id)->id, [$draft->embedkey]);
     }
 }

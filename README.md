@@ -8,6 +8,10 @@ Each piece of guidance is a **note**, a **recommendation**, a **task** or an **o
 with its own colour, and can have a heading. Any of them can hold a **checklist**, whose ticks are
 shared: a teacher ticks an item off, and every teacher sees it ticked.
 
+Guidance is written by **managers**. The teachers running a course - editing teachers included -
+work through it: they tick its checklists and mark it as read or complete, on the page and in the
+editor, but do not add, change or move it.
+
 Each teacher can mark a piece of guidance as read once they have finished with it. From the next
 page load it is gone for them - from the page and from the editor - until they restore it from
 **Teacher guidance marked as read** in the course navigation. Marking guidance as read is personal and
@@ -64,16 +68,22 @@ Presets are optional: *Site administration > Plugins > Local plugins > Teacher g
 
 Who can read guidance is decided entirely by **View teacher guidance** (`local/edguidance:view`),
 given to the non-editing teacher, editing teacher and manager archetypes and withheld from students.
-Who can add it is **Add and edit teacher guidance** (`local/edguidance:manage`): editing teacher and
-manager. Who can tick its checklists is **Tick items on teacher guidance checklists**
-(`local/edguidance:tick`): the same roles as *view*, so a non-editing teacher can tick off their part.
+Who can add, edit and move it is **Add and edit teacher guidance** (`local/edguidance:manage`):
+manager only. Who can tick its checklists, and mark it as read or complete in the editor, is **Tick
+items on teacher guidance checklists** (`local/edguidance:tick`): the same roles as *view*, so a
+non-editing teacher can tick off their part.
+
+Until version 0.6.0 editing teachers could add and edit guidance too. Upgrading takes *manage* back
+from editing-teacher roles where it is still allowed at site level, as install left it; overrides in
+courses and categories are left alone. Grant it again under *Define roles* to have it back.
 
 ## Usage
 
 ### Adding guidance
 
-In an activity description, a book chapter, a lesson page or a section summary (**Edit section**),
-use the **Teacher guidance** button on the editor toolbar (also under **Insert**):
+As a manager, in an activity description, a book chapter, a lesson page or a section summary
+(**Edit section**), use the **Teacher guidance** button on the editor toolbar (also under
+**Insert**):
 
 * **Use a preset** > *title* - links the site preset. Nothing to type; it cannot be edited, and it
   follows the administrator's changes.
@@ -95,17 +105,27 @@ Both belong to this piece of guidance, not to a preset: a linked preset can be a
 elsewhere, with a heading of its own, and still follow the administrator's changes. *Use a preset*
 makes a note with no heading. Either can be changed whenever the guidance is edited.
 
-The guidance appears in the editor as it will on the page, with *Click to edit* where the page has
-*Mark as read* or *Mark as complete*. Guidance you have marked as read does not appear at all, as on the page, until you
-choose **Show guidance marked as read** from the same toolbar button: then it appears in full over a
-light hatch, marked *Marked as read - click to edit* (*Marked as complete*, for a task), for as long
-as you stay in that editor. Click it (or choose
+The guidance appears in the editor as it will on the page, with *Click to edit* beside its *Mark as
+read* or *Mark as complete*. Guidance you have marked as read does not appear at all, as on the
+page, until you choose **Show guidance marked as read** from the same toolbar button: then it appears
+in full over a light hatch, marked *Marked as read - click to edit* (*Marked as complete*, for a
+task), with a **Restore**, for as long as you stay in that editor. Click it (or choose
 **Edit this guidance** with the cursor on it) to change it, to switch it to a different preset, or
 to turn a linked preset into an editable copy by choosing *My own text*. The same form offers
 **Delete**, which asks first - once the text is saved the guidance is gone for every teacher, not
 just for you - and, for guidance you have marked as read, **Restore**. Deleting it as you would any other
 block of text does the same as *Delete*, without asking. To move it, hover over it and use the up
 and down arrows at its bottom right, which move it past one paragraph (or other block) at a time.
+
+### Working through guidance in the editor
+
+A teacher who may not write guidance - an editing teacher, by default - still edits the text around
+it, and sees it there as a manager does. What they can do with it is what they can do on the page:
+tick its checklist, and **Mark as read** or **Mark as complete** it, with the same *Undo*. Both are
+saved at once, whether or not the text around it is. The toolbar button offers them only *Show
+guidance marked as read*, which then shows such guidance hatched with a **Restore**; with nothing to
+show, the button is disabled. Clicking guidance does not open it for editing, and there are no move
+arrows.
 
 ### Checklists
 
@@ -116,9 +136,12 @@ Start each item on a line of its own with `[ ]` and a space:
 [ ] Check the groups
 ```
 
-Write `[x]` for an item that starts ticked. The guidance form's help says the same.
+Write `[x]` for an item that starts ticked. The guidance form's help says the same, and the
+**Teacher guidance** button on the guidance editor's own toolbar has one item, **Add task**, which
+writes `[ ] Task name` on a new line with *Task name* selected to type over.
 
-On the page each item is a checkbox, indented 20px. Ticking or unticking one is saved at once, for
+On the page each item is a checkbox, indented 20px. Once every item is ticked the guidance turns
+green, whatever its category, so a finished list stands out from one still to do. Ticking or unticking one is saved at once, for
 every teacher - the checklist is shared, not personal - and logged. A preset's checklist shows, but
 its boxes cannot be ticked: the preset is the whole site's. *Start with a preset* copies it into
 guidance of your own, which can be.
@@ -294,13 +317,25 @@ with `DOMDocument`, only when there is a checklist, to wrap each box and the res
 line. Each item is indented 20px (`styles.css`). An item in a bulleted list keeps its bullet: nothing
 treats list items specially.
 
-A box can be ticked where `block::render_row()` finds `local/edguidance:tick` and the block has its own
-text. It is disabled in a preset block - the text is the whole site's; the title says so - in the
-editor's preview, which is clicked to edit, and for anyone without the capability. The web service
+A box can be ticked where `block::render_row()` - or, in the editor, `block::render_preview()` - finds
+`local/edguidance:tick` and the block has its own text. It is disabled in a preset block - the text is
+the whole site's; the title says so - and for anyone without the capability. The web service
 (`local_edguidance_set_checked`) checks *view* and *tick*, and refuses presets and drafts, itself.
 `amd/src/guidance.js` saves each tick as it is made, with the box disabled until it is saved, and puts
 the box back and shows why if it cannot be. A click on an item is stopped at the document, as
 *Mark as read* is (see *Dismissing*), but not prevented, so the box still ticks.
+
+A block whose checklist is all ticked is **complete**: `edguidance-complete`, which `styles.css`
+dresses green over whatever category it is, keeping the category's name and icon.
+`checklist::format_with_tally()` counts the boxes it shows and those ticked, and
+`guidance::resolve()` reports `complete` from that - from what is shown, so an item a filter left
+out counts for nothing either way. After each tick `guidance.js` sets the class again from the
+block's boxes, so the block turns green, or back, without a reload.
+
+*Add task* (`tiny_edguidance/tasks`) is offered only in the guidance editor, which the plugin
+recognises by `embed_form::is_rendering()` (see *The preview in the editor*). It writes the task in a
+new paragraph after the cursor's - a new list item, in a list - or in the cursor's own line if that
+is empty, in one undo step.
 
 Known limit: a multilang line holding one language's marker straight after another's -
 `<span lang="mi">[ ] Tahi</span><span lang="en">[ ] One</span>` - is one line with a marker in
@@ -413,13 +448,13 @@ while each section step runs, and sorts the keys out itself (see *Backup and res
 ### The preview in the editor
 
 `tiny_edguidance` shows each token as the page will show its block: the same template, rendered by
-`block::render_preview()` (no buttons) and fetched for every token in the text at once from
+`block::render_preview()` and fetched for every token in the text at once from
 `local_edguidance_get_previews`, which also flags each block the teacher has dismissed. The editor
 shows a flagged block as nothing at all, as the page does, until the teacher chooses *Show guidance
 marked as read* from the menu; that item is offered only while such a block is hidden. From then on,
 in that editor only, flagged blocks show in full over a hatch, with *Marked as read - click to edit*
-in the header, or *Marked as complete - click to edit* for a task. The hatch is neutral grey, so it
-reads the same over every category. The choice is held in the editor's own state and never stored, so it lasts until the page is
+in the header, or *Marked as complete - click to edit* for a task (without *click to edit*, for a
+teacher who may not). The hatch is neutral grey, so it reads the same over every category. The choice is held in the editor's own state and never stored, so it lasts until the page is
 left, and there is deliberately no way to hide them again short of that. A hidden block takes no
 space, so it cannot be clicked: show it first to edit, restore or delete it.
 
@@ -444,15 +479,38 @@ Awesome font faces are also copied onto the editor's document, for the title's i
 
 Blocks are looked up as the guidance form looks them up - `api::get_embeds()`, within the editor's
 context - so a token pasted in from elsewhere previews as a "not found" notice, and a draft previews
-on the *add an activity* form. Drafts are why the service needs `manage` rather than `view`. A block
-with nothing to say previews as a notice rather than as nothing, so there is still something to
-click.
+on the *add an activity* form. The service needs `view`, and `manage` for drafts, which only their
+writer ever sees. A block with nothing to say previews as a notice rather than as nothing, so there
+is still something to click.
 
-Nothing inside the preview is interactive (`pointer-events: none`): a click lands on the token and
-opens the form, and a link or video in the guidance does nothing inside the editor. The one
-exception is the up and down buttons (`amd/src/move.js`), which are in the same shadow root, so
-they are never saved either. Their clicks are stopped inside the shadow root, before the token's
-own click handler would open the form. A move swaps the token with its neighbouring element,
+**Who gets what.** The plugin is on in every editor where a block can live for anyone who may read
+guidance - not only those who may write it, because an editing teacher still edits the text around
+guidance, and the plugin is what keeps its tokens whole (non-editable, saved empty) and shows them.
+Its configuration tells the client `canmanage` and `cantick`, and the client offers accordingly:
+the add and edit menu items, the form on click, *click to edit* and the move arrows need `manage`;
+the preview's own controls need `tick`. Every web service checks again. A teacher with neither sees
+the guidance and can do nothing to it.
+
+**The guidance editor** - the editor inside `embed_form` - gets the plugin in a mode of its own,
+offering only *Add task* and previewing nothing. It is rendered over AJAX in the same context as the
+editor around it, and editor options cannot carry a flag, so `embed_form::render()` says it is
+rendering (`is_rendering()`) while TinyMCE decides its plugins inside that call. Any other editor
+rendered over AJAX still gets nothing.
+
+Nothing inside the preview acts on its own (`pointer-events: none`): a click lands on the token and
+opens the form for a teacher who may edit it, and a link or video in the guidance does nothing
+inside the editor. The exceptions live in the same shadow root, so they are never saved either:
+
+* for a teacher who may tick, the preview's own controls - its checklist's enabled boxes, *Mark as
+  read* or *complete* and its *Undo*, and on hatched guidance *Restore* - which `render_preview()`
+  includes for them, and which work through `local_edguidance/guidance`'s `tick()` and `dismiss()`,
+  as the page's do. *Restore* then fetches the preview again, since restored guidance is guidance
+  like any other. Their clicks, presses and keys are stopped inside the shadow root: the token would
+  take a click as a request to open the form, and TinyMCE a key as typing over the selected token.
+  The handlers run in the page's window but the elements are the editor iframe's, so they are
+  tested with `.closest`, never `instanceof Element`, which is a different class in each;
+* for a teacher who may edit guidance, the up and down buttons (`amd/src/move.js`), whose clicks are
+  stopped the same way. A move swaps the token with its neighbouring element,
 stepping over TinyMCE's `data-mce-bogus` scaffolding, in one undo step. Filter output
 that needs JavaScript, such as MathJax or a media player, does not start in the preview.
 
@@ -573,8 +631,11 @@ book chapters and lesson pages; section summaries, in Boost and in Snap; adding 
 editor button, in a chapter and a section summary; the editor's preview, as it is added and edited,
 with a check each time that the guidance is not in the text the editor would save; dismissed
 guidance hidden in the editor, shown hatched on request, and restored from its form; deleting
-guidance from its form; moving guidance up and down in the editor; and checklists - ticks shared
-between teachers and kept over a reload, none of it shown to students, and a preset's disabled.
+guidance from its form; moving guidance up and down in the editor; checklists - ticks shared
+between teachers and kept over a reload, none of it shown to students, a preset's disabled, and the
+guidance turning green once all are ticked; *Add task* in the guidance editor; and an editing teacher
+in the editor - no way to add, edit or open guidance, but ticking, marking as read and restoring
+there, saved whether or not the text is.
 
 Four things to know when adding Behat coverage:
 
@@ -585,7 +646,9 @@ Four things to know when adding Behat coverage:
 * The editor's preview and its move buttons are in a shadow root, which XPath cannot see into.
   Use `tiny_edguidance`'s steps: *the "Content" TinyMCE editor should preview guidance "..."* (and
   *should not preview*, and *should preview dismissed guidance* for the hatched kind), *... should
-  not save "..."* and *I move teacher guidance "up" in the "Content" TinyMCE editor*.
+  not save "..."*, *I move teacher guidance "up" in the "Content" TinyMCE editor* and *I click on
+  "..." in the teacher guidance preview in the "Content" TinyMCE editor* (a checklist item or a
+  button). Writing guidance needs a manager: enrol the teacher who does as one.
 * Open the dismissed guidance page with *I am on the "Course 1" "local_edguidance > dismissed
   guidance" page*, not through the navigation, whose overflow into *More* depends on window size and
   theme. On that page an activity's name is also in the course index, so a `"list_item"` scope finds

@@ -212,6 +212,27 @@ final class checklist_test extends \advanced_testcase {
     }
 
     /**
+     * The tally counts the boxes shown and those ticked; text with no checklist has none.
+     */
+    public function test_tally(): void {
+        $this->resetAfterTest();
+        $context = \context_system::instance();
+        $tally = fn(string $text) => checklist::format_with_tally($text, FORMAT_HTML, $context, true);
+
+        $some = $tally('<p>[x] One</p><p>[ ] Two</p>');
+        $this->assertSame([2, 1], [$some->items, $some->ticked]);
+        $none = $tally('<p>Nothing to tick.</p>');
+        $this->assertSame([0, 0], [$none->items, $none->ticked]);
+
+        // An item a filter leaves out counts for nothing either way.
+        filter_set_global_state('multilang', TEXTFILTER_ON);
+        \filter_manager::reset_caches();
+        $shown = $tally('<p><span lang="fr" class="multilang">[ ] Un<br></span>' .
+            '<span lang="en" class="multilang">[x] One</span></p>');
+        $this->assertSame([1, 1], [$shown->items, $shown->ticked]);
+    }
+
+    /**
      * Anything that looks like a placeholder in the text is only text: the real ones are unguessable.
      */
     public function test_placeholder_lookalikes_are_text(): void {

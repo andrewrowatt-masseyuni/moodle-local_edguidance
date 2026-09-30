@@ -32,9 +32,13 @@ use local_edguidance\guidance;
  * The block is dressed as its category, and a task (optional or not) is marked as complete rather
  * than as read. Only the words differ: either way it is a dismissal (see local_edguidance\dismissed).
  *
+ * A block whose checklist is all ticked is dressed as complete, whatever its category.
+ *
  * The editor previews a block with the same template, so that it looks as it will on the page. It
  * previews a dismissed block in full too; whether to show it is the editor's decision, because a
- * teacher can ask to see what they have dismissed there (see tiny_edguidance/previews).
+ * teacher can ask to see what they have dismissed there (see tiny_edguidance/previews). For a
+ * teacher who may tick, the preview is interactive, as the page is: its boxes tick, and it can be
+ * marked as read or complete - or, if it already has been, restored.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -47,6 +51,8 @@ class block implements \renderable, \templatable {
      * @param \stdClass $row The local_edguidance row.
      * @param \stdClass $resolved What guidance::resolve() returned for it.
      * @param bool $preview For the editor's preview rather than the page.
+     * @param bool $interactive For a preview: whether it offers to mark the block as read or complete.
+     * @param bool $dismissed For a preview: whether the current user has already done so.
      */
     public function __construct(
         /** @var \stdClass The local_edguidance row. */
@@ -55,6 +61,10 @@ class block implements \renderable, \templatable {
         protected \stdClass $resolved,
         /** @var bool For the editor's preview rather than the page. */
         protected bool $preview = false,
+        /** @var bool For a preview: whether it offers to mark the block as read or complete. */
+        protected bool $interactive = false,
+        /** @var bool For a preview: whether the current user has already done so. */
+        protected bool $dismissed = false,
     ) {
     }
 
@@ -67,15 +77,20 @@ class block implements \renderable, \templatable {
     public function export_for_template(\renderer_base $output): array {
         $category = category::normalise($this->row->category ?? null);
 
+        // The page only ever renders a block that is not dismissed, and always offers to dismiss it.
+        $offer = !$this->preview || $this->interactive;
+
         return [
             'id' => (int)$this->row->id,
             'category' => $category,
             'categoryname' => category::name($category),
             'task' => category::is_task($category),
+            'complete' => $this->resolved->complete,
             'heading' => guidance::format_heading($this->row),
             'body' => $this->resolved->content,
             'missing' => $this->resolved->missing,
-            'preview' => $this->preview,
+            'dismissable' => $offer && !$this->dismissed,
+            'restorable' => $offer && $this->dismissed,
         ];
     }
 
@@ -113,14 +128,18 @@ class block implements \renderable, \templatable {
     }
 
     /**
-     * Render one row as the editor previews it: in full, with no buttons and its checklist's boxes
-     * disabled, because a click anywhere on it opens the block's form.
+     * Render one row as the editor previews it: in full, whether or not it is dismissed, because the
+     * editor decides what to show.
      *
-     * Unlike render_row(), never renders nothing, and ignores dismissal. The preview is what a
-     * teacher clicks to edit or see the block, so a block with nothing to say, or a token with no
-     * block here, says so instead.
+     * For a teacher who may tick, it is interactive - its boxes tick, and it offers to mark it as
+     * read or complete, or to restore it if it already is. For anyone else its boxes are disabled
+     * and it has no buttons: a click anywhere on it opens the block's form, for those who may edit.
      *
-     * Callers are responsible for the capability check: this renders for whoever asks.
+     * Unlike render_row(), never renders nothing. The preview is what a teacher clicks to edit or see
+     * the block, so a block with nothing to say, or a token with no block here, says so instead.
+     *
+     * Callers are responsible for the capability check: this renders for whoever asks. The one
+     * check made here is whether the reader may tick.
      *
      * @param \stdClass|null $row The local_edguidance row, or null for a token with no block in this context.
      * @return string HTML.
@@ -137,7 +156,8 @@ class block implements \renderable, \templatable {
             );
         }
 
-        $resolved = guidance::resolve($row);
+        $interactive = has_capability('local/edguidance:tick', guidance::context_for($row));
+        $resolved = guidance::resolve($row, $interactive);
         if ($resolved->content === '' && !$resolved->missing) {
             return \html_writer::div(
                 get_string('previewempty', 'local_edguidance'),
@@ -146,7 +166,7 @@ class block implements \renderable, \templatable {
             );
         }
 
-        $block = new self($row, $resolved, true);
+        $block = new self($row, $resolved, true, $interactive, dismissed::is_dismissed((int)$row->id));
 
         return $OUTPUT->render_from_template('local_edguidance/block', $block->export_for_template($OUTPUT));
     }

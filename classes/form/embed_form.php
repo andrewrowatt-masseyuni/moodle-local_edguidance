@@ -53,6 +53,38 @@ class embed_form extends dynamic_form {
     /** @var \stdClass|null|false The block being edited, null for none, or false before it is looked up. */
     protected $row = false;
 
+    /** @var int How deep we are inside rendering this form. */
+    protected static $rendering = 0;
+
+    /**
+     * Render the form, saying so while it happens.
+     *
+     * tiny_edguidance asks is_rendering() to tell the guidance editor in here from the editors around
+     * guidance, which it would otherwise have no way to: the editor options cannot carry a flag, and
+     * the context is the same. The form renders its editor, and TinyMCE decides its plugins, within
+     * this call.
+     *
+     * @return string
+     */
+    public function render() {
+        self::$rendering++;
+        try {
+            return parent::render();
+        } finally {
+            self::$rendering--;
+        }
+    }
+
+    /**
+     * Whether this form is being rendered right now: whether an editor being set up is the guidance
+     * editor.
+     *
+     * @return bool
+     */
+    public static function is_rendering(): bool {
+        return self::$rendering > 0;
+    }
+
     /**
      * The editor's context: an activity, or the course for a section summary or while an activity
      * is being added.

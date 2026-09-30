@@ -131,6 +131,28 @@ final class set_checked_test extends \advanced_testcase {
     }
 
     /**
+     * Guidance whose checklist is all ticked is dressed as complete, whatever its category - and not
+     * before.
+     */
+    public function test_all_ticked_is_complete(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        [$course, $row] = $this->make_block(['category' => category::TASK]);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'teacher'));
+        $render = function () use ($DB, $row): string {
+            guidance::reset_cache();
+            return block::render_row($DB->get_record('local_edguidance', ['id' => $row->id]));
+        };
+
+        $this->assertStringNotContainsString('edguidance-complete', $render());
+        $this->tick($row, 0, true);
+        $this->assertStringNotContainsString('edguidance-complete', $render());
+        $this->tick($row, 1, true);
+        $this->assertStringContainsString('class="edguidance edguidance-task edguidance-complete"', $render());
+    }
+
+    /**
      * Ticking an item that is already ticked - two teachers at once, say - changes and logs nothing.
      */
     public function test_ticking_twice_logs_once(): void {
@@ -292,15 +314,24 @@ final class set_checked_test extends \advanced_testcase {
     }
 
     /**
-     * The editor's preview shows the boxes, but disabled: a click there opens the guidance form.
+     * In the editor's preview the boxes tick for a teacher who may tick, as on the page; for anyone
+     * else they are disabled, and a click there opens the guidance form for those who may edit it.
      */
-    public function test_preview_boxes_are_disabled(): void {
+    public function test_preview_boxes_tick_for_those_who_may(): void {
+        global $DB;
+
         $this->resetAfterTest();
         [$course, $row] = $this->make_block();
         $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'editingteacher'));
 
         $html = block::render_preview($row);
+        $this->assertSame(2, substr_count($html, 'data-action="edguidance-check"'));
 
+        $roleid = (int)$DB->get_field('role', 'id', ['shortname' => 'manager']);
+        assign_capability('local/edguidance:tick', CAP_PROHIBIT, $roleid, \context_module::instance($row->cmid)->id);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'manager'));
+
+        $html = block::render_preview($row);
         $this->assertSame(2, substr_count($html, 'class="edguidance-check" disabled>'));
         $this->assertStringNotContainsString('data-action="edguidance-check"', $html);
     }

@@ -172,7 +172,8 @@ final class category_test extends \advanced_testcase {
     }
 
     /**
-     * The editor's preview shows the category and heading, and no button to mark anything.
+     * The editor's preview shows the category and heading, and - for a teacher, who may tick - the
+     * button to mark it complete.
      */
     public function test_the_preview_shows_category_and_heading(): void {
         $this->resetAfterTest();
@@ -183,7 +184,6 @@ final class category_test extends \advanced_testcase {
         $this->assertStringContainsString('edguidance-optionaltask', $html);
         $this->assertStringContainsString('Optional task', $html);
         $this->assertStringContainsString('<h5 class="edguidance-heading">If there is time</h5>', $html);
-        $this->assertStringNotContainsString(get_string('markascomplete', 'local_edguidance'), $html);
-        $this->assertStringNotContainsString('edguidance-dismiss', $html);
+        $this->assertStringContainsString(get_string('markascomplete', 'local_edguidance'), $html);
     }
 }
