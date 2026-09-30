@@ -305,4 +305,147 @@ final class embed_form_test extends \advanced_testcase {
             'sectionid' => get_fast_modinfo($other)->get_section_info(1)->id,
         ]);
     }
+
+    /**
+     * A new block takes the category and heading it is given; a blank heading is none.
+     */
+    public function test_category_and_heading_are_saved(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        [, $context] = $this->setup_book();
+
+        $key = json_decode($this->submit([
+            'contextid' => $context->id,
+            'key' => '',
+            'category' => category::TASK,
+            'heading' => '  Before week one  ',
+            'source' => 0,
+            'guidance_editor' => ['text' => '<p>Set up groups.</p>', 'format' => FORMAT_HTML,
+                'itemid' => file_get_unused_draft_itemid()],
+        ])['data'])->key;
+        $row = $DB->get_record('local_edguidance', ['embedkey' => $key], '*', MUST_EXIST);
+        $this->assertSame(category::TASK, $row->category);
+        $this->assertSame('Before week one', $row->heading);
+
+        $key = json_decode($this->submit([
+            'contextid' => $context->id,
+            'key' => '',
+            'category' => category::NOTE,
+            'heading' => '   ',
+            'source' => 0,
+            'guidance_editor' => ['text' => '<p>Just so you know.</p>', 'format' => FORMAT_HTML,
+                'itemid' => file_get_unused_draft_itemid()],
+        ])['data'])->key;
+        $this->assertNull($DB->get_field('local_edguidance', 'heading', ['embedkey' => $key]));
+    }
+
+    /**
+     * A block opens with its category selected and its heading filled in, and both can be changed.
+     */
+    public function test_category_and_heading_can_be_changed(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        [, $context] = $this->setup_book();
+        $row = $this->getDataGenerator()->get_plugin_generator('local_edguidance')->create_block([
+            'cmid' => $context->instanceid,
+            'category' => category::OPTIONALTASK,
+            'heading' => 'If there is time',
+        ]);
+
+        $html = $this->open(['contextid' => $context->id, 'key' => $row->embedkey]);
+        $this->assertMatchesRegularExpression('/<option value="optionaltask"\s+selected/', $html);
+        $this->assertStringContainsString('value="If there is time"', $html);
+
+        $this->submit([
+            'contextid' => $context->id,
+            'key' => $row->embedkey,
+            'category' => category::RECOMMENDATION,
+            'heading' => 'Worth doing',
+            'source' => 0,
+            'guidance_editor' => ['text' => '<p>Still the same words.</p>', 'format' => FORMAT_HTML,
+                'itemid' => file_get_unused_draft_itemid()],
+        ]);
+
+        $saved = $DB->get_record('local_edguidance', ['id' => $row->id], '*', MUST_EXIST);
+        $this->assertSame(category::RECOMMENDATION, $saved->category);
+        $this->assertSame('Worth doing', $saved->heading);
+    }
+
+    /**
+     * A new block opens as a note with no heading.
+     */
+    public function test_a_new_block_opens_as_a_note(): void {
+        $this->resetAfterTest();
+        [, $context] = $this->setup_book();
+
+        $html = $this->open(['contextid' => $context->id]);
+
+        $this->assertMatchesRegularExpression('/<option value="note"\s+selected/', $html);
+    }
+
+    /**
+     * A block using a preset has a category and heading of its own, and keeping them does not
+     * unlink the preset.
+     */
+    public function test_a_preset_block_keeps_its_preset(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $this->getDataGenerator()->get_plugin_generator('local_edguidance')->set_preset(2, 'Dates', '<p>Preset words.</p>');
+        [, $context] = $this->setup_book();
+
+        $key = json_decode($this->submit([
+            'contextid' => $context->id,
+            'key' => '',
+            'category' => category::TASK,
+            'heading' => 'Dates',
+            'source' => 2,
+            'guidance_editor' => ['text' => '', 'format' => FORMAT_HTML, 'itemid' => file_get_unused_draft_itemid()],
+        ])['data'])->key;
+
+        $row = $DB->get_record('local_edguidance', ['embedkey' => $key], '*', MUST_EXIST);
+        $this->assertSame(2, (int)$row->presetslot);
+        $this->assertSame(category::TASK, $row->category);
+        $this->assertSame('Dates', $row->heading);
+    }
+
+    /**
+     * A category that is not one is refused, by the form and by the API behind it.
+     */
+    public function test_an_unknown_category_is_refused(): void {
+        $this->resetAfterTest();
+        [, $context] = $this->setup_book();
+
+        $result = $this->submit([
+            'contextid' => $context->id,
+            'key' => '',
+            'category' => 'urgent',
+            'source' => 0,
+            'guidance_editor' => ['text' => '<p>Words.</p>', 'format' => FORMAT_HTML, 'itemid' => file_get_unused_draft_itemid()],
+        ]);
+        $this->assertFalse($result['submitted']);
+
+        $this->expectException(\invalid_parameter_exception::class);
+        api::save_embed($context, null, 0, ['text' => '<p>Words.</p>', 'format' => FORMAT_HTML, 'itemid' => 0], 0, 'urgent');
+    }
+
+    /**
+     * A task this teacher has dismissed says it was marked as complete, not as read.
+     */
+    public function test_editing_a_dismissed_task_says_complete(): void {
+        $this->resetAfterTest();
+        [, $context] = $this->setup_book();
+        $row = $this->getDataGenerator()->get_plugin_generator('local_edguidance')->create_block([
+            'cmid' => $context->instanceid,
+            'category' => category::TASK,
+        ]);
+        dismissed::set((int)$row->id, true);
+
+        $html = $this->open(['contextid' => $context->id, 'key' => $row->embedkey]);
+
+        $this->assertStringContainsString(get_string('formcompleted', 'local_edguidance'), $html);
+        $this->assertStringNotContainsString(get_string('formdismissed', 'local_edguidance'), $html);
+    }
 }

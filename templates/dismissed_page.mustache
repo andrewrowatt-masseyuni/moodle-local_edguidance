@@ -25,7 +25,8 @@
     Context variables required for this template:
     * courseurl string
     * hasany bool
-    * items array - excerpt (plain text, possibly empty), location, locationurl, restoreurl, restorelabel
+    * items array - heading (formatted by format_string(), possibly empty), excerpt (plain text, possibly
+      empty), location, locationurl, restoreurl, restorelabel
 
     Example context (json):
     {
@@ -33,6 +34,7 @@
         "hasany": true,
         "items": [
             {
+                "heading": "Before the course opens",
                 "excerpt": "Set the due date before releasing this to students.",
                 "location": "Assignment 1",
                 "locationurl": "#",
@@ -49,6 +51,7 @@
             {{#items}}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div class="mr-3">
+                        {{#heading}}<div class="edguidance-excerpt font-weight-bold">{{{heading}}}</div>{{/heading}}
                         {{#excerpt}}<div class="edguidance-excerpt">{{excerpt}}</div>{{/excerpt}}
                         <a class="small" href="{{locationurl}}">{{location}}</a>
                     </div>

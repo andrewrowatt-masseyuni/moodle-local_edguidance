@@ -60,6 +60,8 @@ final class section_test extends \advanced_testcase {
 
         $row = $this->generator()->create_block([
             'sectionid' => $section->id,
+            'category' => category::RECOMMENDATION,
+            'heading' => 'This week',
             'guidance' => '<p>Section guidance <img src="@@PLUGINFILE@@/diagram.png" alt="Diagram"></p>',
         ]);
         get_file_storage()->create_file_from_string([
@@ -187,6 +189,8 @@ final class section_test extends \advanced_testcase {
         $new = $DB->get_record('local_edguidance', ['embedkey' => $keys[0]], '*', MUST_EXIST);
         $this->assertSame((int)$copy->id, (int)$new->sectionid);
         $this->assertSame($row->guidance, $new->guidance);
+        $this->assertSame(category::RECOMMENDATION, $new->category);
+        $this->assertSame('This week', $new->heading);
         $this->assertTrue($this->has_file($course, (int)$new->id));
         // A new block, so nobody has dismissed it yet.
         $this->assertFalse(dismissed::is_dismissed((int)$new->id));

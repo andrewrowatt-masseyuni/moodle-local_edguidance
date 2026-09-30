@@ -34,7 +34,8 @@
  *
  * embedkey and presetslot are carried verbatim. The key is what the token in the description,
  * chapter, page or summary matches on, and that text is restored unchanged; the slot names a site
- * setting, not something in the course.
+ * setting, not something in the course. A backup from before categories and headings has neither,
+ * and restores as a note with no heading, which is what the table's defaults make it.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -75,6 +76,8 @@ class backup_local_edguidance_plugin extends backup_local_plugin {
             'embedkey',
             'introorder',
             'presetslot',
+            'category',
+            'heading',
             'guidance',
             'guidanceformat',
             'timecreated',

@@ -103,6 +103,8 @@ final class backup_test extends \advanced_testcase {
 
         $own = $generator->create_block([
             'cmid' => $book->cmid,
+            'category' => category::TASK,
+            'heading' => 'Before week one',
             'guidance' => '<p>Chapter guidance <img src="@@PLUGINFILE@@/diagram.png" alt="Diagram"></p>',
         ]);
         get_file_storage()->create_file_from_string([
@@ -120,7 +122,7 @@ final class backup_test extends \advanced_testcase {
     }
 
     /**
-     * Blocks come across with their keys, preset slots, order and files unchanged.
+     * Blocks come across with their keys, preset slots, order, categories, headings and files unchanged.
      */
     public function test_blocks_survive_a_course_restore(): void {
         global $DB;
@@ -133,7 +135,12 @@ final class backup_test extends \advanced_testcase {
 
         $newbook = get_fast_modinfo($newcourseid)->get_instances_of('book');
         $newcm = reset($newbook);
-        $rows = $DB->get_records('local_edguidance', ['cmid' => $newcm->id], '', 'embedkey, id, courseid, presetslot, introorder');
+        $rows = $DB->get_records(
+            'local_edguidance',
+            ['cmid' => $newcm->id],
+            '',
+            'embedkey, id, courseid, presetslot, introorder, category, heading'
+        );
         $this->assertCount(2, $rows);
 
         // The whole point: the same keys, so the tokens restored in the text still match.
@@ -143,6 +150,10 @@ final class backup_test extends \advanced_testcase {
         // A slot names a site setting, not something in the course, so it is carried verbatim.
         $this->assertSame(5, (int)$rows[$preset->embedkey]->presetslot);
         $this->assertSame(1, (int)$rows[$preset->embedkey]->introorder);
+        $this->assertSame(category::TASK, $rows[$own->embedkey]->category);
+        $this->assertSame('Before week one', $rows[$own->embedkey]->heading);
+        $this->assertSame(category::NOTE, $rows[$preset->embedkey]->category);
+        $this->assertNull($rows[$preset->embedkey]->heading);
 
         $this->assertTrue(get_file_storage()->file_exists(
             \context_module::instance($newcm->id)->id,

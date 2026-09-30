@@ -25,6 +25,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['backtocourse'] = 'Back to the course';
+$string['category'] = 'Category';
+$string['category_help'] = 'How the guidance is presented: a note (yellow), a recommendation (blue), a task (red) or an optional task (orange). A teacher marks a task or an optional task as complete, and anything else as read. Either way it is then hidden from that teacher only. The category can be changed at any time.';
+$string['categorynote'] = 'Note';
+$string['categoryoptionaltask'] = 'Optional task';
+$string['categoryrecommendation'] = 'Recommendation';
+$string['categorytask'] = 'Task';
+$string['completedconfirm'] = 'You have marked this task as complete. When you revisit this page, it will be removed.';
 $string['dismissed'] = 'Teacher guidance marked as read';
 $string['dismissed_desc'] = 'Teacher guidance you have marked as read is not shown to you anywhere in this course. Restore it to see it again. This only changes what you see, never what your colleagues see.';
 $string['dismissedconfirm'] = 'You have marked this teacher guidance as read. When you revisit this page, it will be removed.';
@@ -32,9 +39,12 @@ $string['dismissednone'] = 'You have not marked any teacher guidance as read in 
 $string['dismissedundo'] = 'If you didn\'t mean to do that you can undo this action.';
 $string['edguidance:manage'] = 'Add and edit teacher guidance';
 $string['edguidance:view'] = 'View teacher guidance';
+$string['formcompleted'] = 'You have marked this task as complete, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['formdismissed'] = 'You have marked this teacher guidance as read, so it is hidden from you on the page and, unless you choose Show guidance marked as read, in the editor. Restore it to see it again.';
 $string['guidance'] = 'Teacher guidance';
 $string['guidancemissing'] = 'The site guidance preset this used is no longer available, so this may be out of date.';
+$string['heading'] = 'Heading';
+$string['markascomplete'] = 'Mark as complete';
 $string['markasread'] = 'Mark as read';
 $string['onlyteachers'] = 'Only teachers see this';
 $string['pluginname'] = 'Teacher guidance';

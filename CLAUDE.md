@@ -64,8 +64,9 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
   else, and do not render a dismissed block client-side. The one exception is the editor:
   `render_preview()` renders it in full, `get_previews` flags it, and `tiny_edguidance/previews`
   hides it unless the teacher chooses *Show guidance marked as read*.
-* **"Dismissed" in code is "Mark as read" in the interface.** Keep identifiers as they are; only
-  strings say *read*.
+* **"Dismissed" in code is "Mark as read" in the interface** - or "Mark as complete" for a task or an
+  optional task (`category::is_task()`). Keep identifiers as they are; only strings say *read* or
+  *complete*.
 * **The editor's preview lives in a shadow root on the token, never inside it.** Anything inside a
   token is saved into host text, and `token::PATTERN` stops at the first `</div>`, so the filter
   would strip only the start of it and students would see the rest.

@@ -186,6 +186,7 @@ class dismissed_page implements \renderable, \templatable {
         $items = [];
         foreach (self::find($courseid) as ['row' => $row, 'name' => $name, 'url' => $url]) {
             $items[] = [
+                'heading' => guidance::format_heading($row),
                 'excerpt' => self::excerpt($row),
                 'location' => $name,
                 'locationurl' => $url->out(false),

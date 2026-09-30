@@ -27,7 +27,7 @@ class local_edguidance_generator extends component_generator_base {
      * Create a guidance block directly, without going through an editor.
      *
      * @param array|stdClass $record Needs cmid, sectionid, or courseid for a draft. Optional:
-     *     embedkey, guidance, guidanceformat, presetslot, introorder.
+     *     embedkey, guidance, guidanceformat, presetslot, introorder, category, heading.
      * @return stdClass The new row.
      */
     public function create_block($record): stdClass {
@@ -48,6 +48,8 @@ class local_edguidance_generator extends component_generator_base {
             'embedkey' => \local_edguidance\token::new_key(),
             'introorder' => 0,
             'presetslot' => 0,
+            'category' => \local_edguidance\category::NOTE,
+            'heading' => null,
             'guidance' => '<p>Check the due date before releasing this.</p>',
             'guidanceformat' => FORMAT_HTML,
             'timecreated' => $now,

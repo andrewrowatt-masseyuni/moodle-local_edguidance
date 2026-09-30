@@ -16,6 +16,7 @@
 
 namespace local_edguidance\output;
 
+use local_edguidance\category;
 use local_edguidance\dismissed;
 use local_edguidance\guidance;
 
@@ -27,6 +28,9 @@ use local_edguidance\guidance;
  * page. Otherwise both states are exported - the guidance, and the confirmation that replaces it
  * once dismissed, with an undo - and the AMD module only toggles between them, so undo needs no
  * round trip for markup and nothing is rendered client-side.
+ *
+ * The block is dressed as its category, and a task (optional or not) is marked as complete rather
+ * than as read. Only the words differ: either way it is a dismissal (see local_edguidance\dismissed).
  *
  * The editor previews a block with the same template, so that it looks as it will on the page. It
  * previews a dismissed block in full too; whether to show it is the editor's decision, because a
@@ -61,8 +65,14 @@ class block implements \renderable, \templatable {
      * @return array
      */
     public function export_for_template(\renderer_base $output): array {
+        $category = category::normalise($this->row->category ?? null);
+
         return [
             'id' => (int)$this->row->id,
+            'category' => $category,
+            'categoryname' => category::name($category),
+            'task' => category::is_task($category),
+            'heading' => guidance::format_heading($this->row),
             'body' => $this->resolved->content,
             'missing' => $this->resolved->missing,
             'preview' => $this->preview,

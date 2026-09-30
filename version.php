@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_edguidance';
-$plugin->release = '0.3.0';
-$plugin->version = 2026092900;
+$plugin->release = '0.4.0';
+$plugin->version = 2026093000;
 $plugin->requires = 2024100700;
 // Pinned to 4.5 to match mod_edpreset and the rest of the ed* family, which are developed and tested
 // together. The afterlink technique in classes/local/card_injector.php leans on core internals

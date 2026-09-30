@@ -38,7 +38,7 @@ Feature: Teacher guidance in activity cards
     Then I should see "Read this first." in the "Shown page" "activity"
     And I should not see "Check the reading list is current."
     And I should not see "Set the release date first."
-    And I should not see "Teacher guidance"
+    And I should not see "Only teachers see this"
 
   @javascript
   Scenario: Dismissing guidance can be undone straight away
@@ -59,10 +59,10 @@ Feature: Teacher guidance in activity cards
     When I click on "Mark as read" "button" in the "Hidden page" "activity"
     And I click on "Mark as read" "button" in the "Shown page" "activity"
     And I reload the page
-    # Nothing is left of it, not even the heading - and the description around it is untouched.
+    # Nothing is left of it, not even the header - and the description around it is untouched.
     Then I should not see "Set the release date first."
     And I should not see "Check the reading list is current."
-    And I should not see "Teacher guidance" in the "region-main" "region"
+    And I should not see "Only teachers see this" in the "region-main" "region"
     And I should see "Read this first." in the "Shown page" "activity"
     And I am on the "Course 1" "local_edguidance > dismissed guidance" page
     And I should see "Set the release date first."
@@ -78,6 +78,27 @@ Feature: Teacher guidance in activity cards
   Scenario: The dismissed guidance page says when there is nothing to restore
     When I am on the "Course 1" "local_edguidance > dismissed guidance" page logged in as teacher1
     Then I should see "You have not marked any teacher guidance as read in this course."
+
+  @javascript
+  Scenario: Guidance shows its category and heading, and a task is marked as complete
+    Given the following "activities" exist:
+      | activity | course | idnumber | name         | intro                                                                   | showdescription |
+      | page     | C1     | groups   | Groups page  | <div class="edguidance-embed" data-edguidance="bbbbbbbbbbbbbbbb"></div> | 1               |
+      | page     | C1     | reading  | Reading page | <div class="edguidance-embed" data-edguidance="cccccccccccccccc"></div> | 1               |
+    And the following "local_edguidance > blocks" exist:
+      | activity | embedkey         | guidance                  | introorder | category       | heading         |
+      | groups   | bbbbbbbbbbbbbbbb | <p>Set up the groups.</p> | 1          | task           | Before week one |
+      | reading  | cccccccccccccccc | <p>Skim chapter two.</p>  | 1          | recommendation |                 |
+    When I am on the "Course 1" course page logged in as teacher1
+    Then I should see "Before week one" in the ".edguidance-task h5.edguidance-heading" "css_element"
+    And I should see "Task" in the "Groups page" "activity"
+    And I should see "Recommendation" in the "Reading page" "activity"
+    And "h5.edguidance-heading" "css_element" should not exist in the "Reading page" "activity"
+    And "Mark as read" "button" should not exist in the "Groups page" "activity"
+    And "Mark as read" "button" should exist in the "Reading page" "activity"
+    And I click on "Mark as complete" "button" in the "Groups page" "activity"
+    And I should see "You have marked this task as complete." in the "Groups page" "activity"
+    And I should not see "Set up the groups."
 
   @javascript
   Scenario: One teacher dismissing guidance does not hide it from another

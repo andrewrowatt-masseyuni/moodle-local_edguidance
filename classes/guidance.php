@@ -33,7 +33,8 @@ namespace local_edguidance;
  */
 class guidance {
     /** @var string The columns every lookup returns. */
-    protected const FIELDS = 'id, courseid, cmid, sectionid, embedkey, introorder, presetslot, guidance, guidanceformat';
+    protected const FIELDS = 'id, courseid, cmid, sectionid, embedkey, introorder, presetslot, category, heading, '
+        . 'guidance, guidanceformat';
 
     /**
      * Rows keyed by course id, then 'cms' => cm id => key, and 'sections' => key.
@@ -174,6 +175,23 @@ class guidance {
         }
 
         return (object)['content' => $content, 'missing' => $missing];
+    }
+
+    /**
+     * A block's heading, formatted for output.
+     *
+     * The block's own whether or not it uses a preset, so it is never resolved like the text.
+     *
+     * @param \stdClass $row A local_edguidance row.
+     * @return string HTML-safe text, or '' for a block with no heading.
+     */
+    public static function format_heading(\stdClass $row): string {
+        $heading = trim((string)($row->heading ?? ''));
+        if ($heading === '') {
+            return '';
+        }
+
+        return format_string($heading, true, ['context' => self::context_for($row)]);
     }
 
     /**

@@ -18,6 +18,7 @@ namespace local_edguidance\form;
 
 use core_form\dynamic_form;
 use local_edguidance\api;
+use local_edguidance\category;
 use local_edguidance\dismissed;
 use local_edguidance\presets;
 
@@ -32,12 +33,16 @@ use local_edguidance\presets;
  * shows the editor. The editor is always pre-filled with whatever the block shows now, so turning
  * a preset block into an editable copy is a single change of the select.
  *
+ * The category and the optional heading are the block's own whichever source it has, so they are
+ * offered - and can be changed - either way.
+ *
  * Arguments: contextid (the editor's context), and optionally sectionid (the section whose summary
  * is being edited, in a course context), key (the block being edited) and startslot (a preset to
  * copy into the editor for a new block).
  *
- * A block the current user has dismissed opens with a notice saying so, which also carries the
- * block's id: tiny_edguidance offers to restore the block when, and only when, the notice is there.
+ * A block the current user has dismissed opens with a notice saying so - marked as complete, for a
+ * task - which also carries the block's id: tiny_edguidance offers to restore the block when, and
+ * only when, the notice is there.
  *
  * @package    local_edguidance
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -121,12 +126,22 @@ class embed_form extends dynamic_form {
         // Editing is not undismissing: the block stays out of this teacher's way until they say so.
         $row = $this->get_row();
         if ($row && dismissed::is_dismissed((int)$row->id)) {
+            $notice = category::is_task(category::normalise($row->category)) ? 'formcompleted' : 'formdismissed';
             $mform->addElement('html', \html_writer::div(
-                get_string('formdismissed', 'local_edguidance'),
+                get_string($notice, 'local_edguidance'),
                 'alert alert-info',
                 ['data-region' => 'edguidance-dismissednotice', 'data-guidanceid' => (int)$row->id]
             ));
         }
+
+        $mform->addElement('select', 'category', get_string('category', 'local_edguidance'), category::options());
+        $mform->addHelpButton('category', 'category', 'local_edguidance');
+        $mform->setType('category', PARAM_ALPHA);
+        $mform->setDefault('category', category::NOTE);
+
+        $mform->addElement('text', 'heading', get_string('heading', 'local_edguidance'), ['size' => 60]);
+        $mform->setType('heading', PARAM_TEXT);
+        $mform->addRule('heading', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $presets = presets::all();
 
@@ -177,6 +192,10 @@ class embed_form extends dynamic_form {
      */
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
+
+        if (!category::is_valid((string)($data['category'] ?? ''))) {
+            $errors['category'] = get_string('required');
+        }
 
         $source = (int)($data['source'] ?? 0);
         if ($source > 0 && !presets::get($source)) {
@@ -234,6 +253,8 @@ class embed_form extends dynamic_form {
             'contextid' => $context->id,
             'sectionid' => $this->get_sectionid(),
             'key' => $row ? $row->embedkey : '',
+            'category' => category::normalise($row->category ?? null),
+            'heading' => (string)($row->heading ?? ''),
             'source' => $source,
             'guidance_editor' => $data->guidance_editor,
         ]);
@@ -254,7 +275,9 @@ class embed_form extends dynamic_form {
             $data->key !== '' ? $data->key : null,
             $source,
             $source > 0 ? null : $data->guidance_editor,
-            $this->get_sectionid()
+            $this->get_sectionid(),
+            (string)$data->category,
+            (string)($data->heading ?? '')
         );
 
         return ['key' => $key];

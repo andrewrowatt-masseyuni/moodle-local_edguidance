@@ -28,8 +28,15 @@
     This must never contain the data-edguidance attribute. That is the token filter_edguidance looks
     for, and mod_lesson runs some text through the filters twice.
 
+    The category is named in the header as well as coloured, so that it does not rest on colour alone.
+    A task, optional or not, is marked as complete rather than as read.
+
     Context variables required for this template:
     * id int - local_edguidance.id
+    * category string - note, recommendation, task or optionaltask
+    * categoryname string - the category's name, for people
+    * task bool - marked as complete rather than as read
+    * heading string - already formatted by format_string(), rendered unescaped; '' for none
     * body string - already formatted HTML, rendered unescaped
     * missing bool - the preset it used has gone, so the body is a possibly stale copy
     * preview bool - for the editor's preview: no buttons, because a click anywhere on it edits it
@@ -37,22 +44,29 @@
     Example context (json):
     {
         "id": 42,
+        "category": "task",
+        "categoryname": "Task",
+        "task": true,
+        "heading": "Before the course opens",
         "body": "<p>Set the due date before releasing this to students.</p>",
         "missing": false,
         "preview": false
     }
 }}
-<div class="edguidance" data-region="edguidance" data-guidanceid="{{id}}">
+<div class="edguidance edguidance-{{category}}" data-region="edguidance" data-guidanceid="{{id}}">
     <div class="edguidance-card">
         <div class="edguidance-header">
-            <span class="edguidance-title">{{#str}} guidance, local_edguidance {{/str}}</span>
+            <span class="edguidance-title">{{categoryname}}</span>
             <span class="edguidance-scope">{{#str}} onlyteachers, local_edguidance {{/str}}</span>
             {{^preview}}
             <button type="button" class="btn btn-link btn-sm edguidance-dismiss" data-action="edguidance-dismiss"
-                data-region="edguidance-live">{{#pix}} t/markasread, core {{/pix}}{{#str}} markasread, local_edguidance {{/str}}</button>
+                data-region="edguidance-live">{{#pix}} t/markasread, core {{/pix}}{{#task}}{{#str}} markascomplete, local_edguidance {{/str}}{{/task}}{{^task}}{{#str}} markasread, local_edguidance {{/str}}{{/task}}</button>
             {{/preview}}
         </div>
         <div data-region="edguidance-live">
+            {{#heading}}
+                <h5 class="edguidance-heading">{{{heading}}}</h5>
+            {{/heading}}
             {{#missing}}
                 <div class="alert alert-info edguidance-missing" role="alert">{{#str}} guidancemissing, local_edguidance {{/str}}</div>
             {{/missing}}
@@ -60,7 +74,8 @@
         </div>
         {{^preview}}
         <div class="edguidance-confirm" data-region="edguidance-dismissed" hidden>
-            {{#str}} dismissedconfirm, local_edguidance {{/str}}
+            {{#task}}{{#str}} completedconfirm, local_edguidance {{/str}}{{/task}}
+            {{^task}}{{#str}} dismissedconfirm, local_edguidance {{/str}}{{/task}}
             {{#str}} dismissedundo, local_edguidance {{/str}}
             <button type="button" class="btn btn-link p-0 align-baseline edguidance-undo" data-action="edguidance-undo">
                 {{#str}} undo, local_edguidance {{/str}}

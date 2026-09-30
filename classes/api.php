@@ -143,26 +143,36 @@ class api {
      * say - gets a new block with a new key rather than an error. The caller rewrites the token with
      * whatever key comes back.
      *
+     * The category and heading are the block's own, preset or not, and are always saved as given:
+     * a caller updating a block passes what it has now.
+     *
      * @param \context $context The editor's context.
      * @param string|null $key The block to update, or null for a new one.
      * @param int $presetslot A site preset slot to use, or 0 for the block's own text.
      * @param array|null $editor The editor's value (text, format, itemid) when $presetslot is 0.
      * @param int $sectionid The section whose summary is being edited, or 0.
+     * @param string $category One of category::ALL.
+     * @param string $heading Plain text, or '' for none.
      * @return string The block's key.
-     * @throws \invalid_parameter_exception If the preset slot is not in use.
+     * @throws \invalid_parameter_exception If the preset slot is not in use, or the category is not one.
      */
     public static function save_embed(
         \context $context,
         ?string $key,
         int $presetslot,
         ?array $editor = null,
-        int $sectionid = 0
+        int $sectionid = 0,
+        string $category = category::NOTE,
+        string $heading = ''
     ): string {
         global $DB;
 
         $preset = null;
         if ($presetslot > 0 && !($preset = presets::get($presetslot))) {
             throw new \invalid_parameter_exception('That teacher guidance preset is not in use.');
+        }
+        if (!category::is_valid($category)) {
+            throw new \invalid_parameter_exception('That is not a teacher guidance category.');
         }
 
         [$courseid, $cmid, $sectionid] = self::embed_target($context, $sectionid);
@@ -177,6 +187,8 @@ class api {
                 'embedkey' => token::new_key(),
                 'introorder' => 0,
                 'presetslot' => 0,
+                'category' => category::NOTE,
+                'heading' => null,
                 'guidance' => '',
                 'guidanceformat' => FORMAT_HTML,
                 'timecreated' => $now,
@@ -208,6 +220,9 @@ class api {
             $row->guidanceformat = $data->guidanceformat;
         }
 
+        $heading = trim($heading);
+        $row->category = $category;
+        $row->heading = $heading !== '' ? $heading : null;
         $row->timemodified = $now;
         $DB->update_record('local_edguidance', $row);
         guidance::reset_cache();

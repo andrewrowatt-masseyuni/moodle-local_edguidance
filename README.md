@@ -4,6 +4,9 @@ Shows guidance to teaching staff, embedded where it is needed: in an activity's 
 in its activity card on the course page), in a book chapter, in a lesson page, or in a section
 summary. Students never see it.
 
+Each piece of guidance is a **note**, a **recommendation**, a **task** or an **optional task**, each
+with its own colour, and can have a heading.
+
 Each teacher can mark a piece of guidance as read once they have finished with it. From the next
 page load it is gone for them - from the page and from the editor - until they restore it from
 **Teacher guidance marked as read** in the course navigation. Marking guidance as read is personal and
@@ -76,10 +79,25 @@ use the **Teacher guidance** button on the editor toolbar (also under **Insert**
   The copy is your own and does not change when the preset does.
 * **Start with blank** - opens the guidance editor empty.
 
+The guidance editor also sets the guidance's **Category** and an optional **Heading**, shown above
+the guidance:
+
+| Category | Colour | Marked off with |
+| --- | --- | --- |
+| Note (the default) | Yellow | *Mark as read* |
+| Recommendation | Blue | *Mark as read* |
+| Task | Red | *Mark as complete* |
+| Optional task | Orange | *Mark as complete* |
+
+Both belong to this piece of guidance, not to a preset: a linked preset can be a task here and a note
+elsewhere, with a heading of its own, and still follow the administrator's changes. *Use a preset*
+makes a note with no heading. Either can be changed whenever the guidance is edited.
+
 The guidance appears in the editor as it will on the page, with *Click to edit* where the page has
-*Mark as read*. Guidance you have marked as read does not appear at all, as on the page, until you
+*Mark as read* or *Mark as complete*. Guidance you have marked as read does not appear at all, as on the page, until you
 choose **Show guidance marked as read** from the same toolbar button: then it appears in full over a
-light hatch, marked *Marked as read - click to edit*, for as long as you stay in that editor. Click it (or choose
+light hatch, marked *Marked as read - click to edit* (*Marked as complete*, for a task), for as long
+as you stay in that editor. Click it (or choose
 **Edit this guidance** with the cursor on it) to change it, to switch it to a different preset, or
 to turn a linked preset into an editable copy by choosing *My own text*. The same form offers
 **Delete**, which asks first - once the text is saved the guidance is gone for every teacher, not
@@ -89,8 +107,9 @@ and down arrows at its bottom right, which move it past one paragraph (or other 
 
 ### Marking as read and restoring
 
-**Mark as read**, with a tick, at the top right of the guidance, replaces it with a line saying it
-will be gone when you revisit the page, and an **Undo**. After that, nothing of it is shown to you
+**Mark as read** - **Mark as complete**, for a task or an optional task - with a tick, at the top
+right of the guidance, replaces it with a line saying it will be gone when you revisit the page, and
+an **Undo**. After that, nothing of it is shown to you
 anywhere: not on the page, not in the activity card, and not in the editor unless you choose *Show
 guidance marked as read* there.
 
@@ -158,6 +177,8 @@ two sections from sharing one.
 | `embedkey` | Matches the token. Unique per activity, and per course among sections and drafts (one index: course, cm, key). Remapped only when a restored section's key is already taken in its course. |
 | `introorder` | 0 if the block is not in the activity description; otherwise its position there. |
 | `presetslot` | 0 for the block's own text; 1-10 to use that site preset. |
+| `category` | `note` (the default), `recommendation`, `task` or `optionaltask`. The block's own, preset or not. |
+| `heading` | Optional plain text shown above the guidance, or null. The block's own, preset or not. |
 | `guidance`, `guidanceformat` | Own text - or, for a preset block, a snapshot taken when it was linked. |
 
 Files embedded in a block's own text live in filearea `guidance`, itemid = the row id, in the
@@ -186,6 +207,9 @@ Ten fixed slots in admin settings (`presettitle{n}`, `presetguidance{n}`), read 
 so they are cached and need no pages of their own. A slot is in use only with both a title and some
 guidance.
 
+A preset is only text. A block using one keeps its own category and heading (see *Categories and
+headings*), so the same preset can be a task in one place and a note in another.
+
 A slot *is* the identity: a block stores `presetslot = 3` and shows whatever slot 3 holds. Replacing
 slot 3 with unrelated guidance changes every block that used it; emptying it makes those blocks fall
 back to their snapshots. The settings page says so.
@@ -195,6 +219,28 @@ and restore, course copy, `mod_edpreset` - copies a block's own text as it stand
 `presetslot` verbatim, so a preset block stays live in every copy. `presetslot` names a site setting rather than
 anything in the course, so on another site it shows that site's preset in that slot (presets are
 generic guidance, so nothing course-private can leak) or the snapshot if the slot is empty.
+
+### Categories and headings
+
+`local_edguidance\category` names the four categories. They are stored by name rather than number,
+so that the table and the backup say what they mean, and a name this version does not know - from a
+later version's backup, say - shows as a note rather than as nothing.
+
+A block's header names its category as well as colouring it, so the category never rests on colour
+alone (WCAG 1.4.1), and "Only teachers see this" still says who it is for. Each category is a class on
+the block (`edguidance-task`, ...) that sets a handful of custom properties in `styles.css` - accent,
+tint, ink, text and action - and every coloured rule reads those, so a category is one small block of
+CSS. The editor's preview needs nothing extra: its shadow roots link the same stylesheet (see *The
+preview in the editor*).
+
+A task or an optional task is marked as *complete* rather than as *read*: the button, the
+confirmation, the notice in the guidance form and the editor's hatched hint all say so. Only the
+words change - see *Dismissing*.
+
+The heading is plain text (`PARAM_TEXT`, 255 characters), formatted with `format_string()` in the
+block's context by `guidance::format_heading()`, and shown as an `h5` above the guidance, sized to the
+aside rather than to the page's own `h5`. The dismissed guidance page shows it too, above the excerpt,
+since telling one block from another is what that page's excerpt is for.
 
 ### Guidance in the activity card
 
@@ -294,7 +340,8 @@ while each section step runs, and sorts the keys out itself (see *Backup and res
 shows a flagged block as nothing at all, as the page does, until the teacher chooses *Show guidance
 marked as read* from the menu; that item is offered only while such a block is hidden. From then on,
 in that editor only, flagged blocks show in full over a hatch, with *Marked as read - click to edit*
-in the header. The choice is held in the editor's own state and never stored, so it lasts until the page is
+in the header, or *Marked as complete - click to edit* for a task. The hatch is neutral grey, so it
+reads the same over every category. The choice is held in the editor's own state and never stored, so it lasts until the page is
 left, and there is deliberately no way to hide them again short of that. A hidden block takes no
 space, so it cannot be clicked: show it first to edit, restore or delete it.
 
@@ -333,9 +380,10 @@ that needs JavaScript, such as MathJax or a media player, does not start in the 
 
 ### Dismissing
 
-The interface calls this *Mark as read*. The code, the web service (`local_edguidance_set_dismissed`),
-the favourites item type and `dismissed.php` keep the name *dismissed*, so renaming the label changed
-no stored data and no API.
+The interface calls this *Mark as read*, or *Mark as complete* for a task or an optional task. The
+code, the web service (`local_edguidance_set_dismissed`), the favourites item type and `dismissed.php`
+keep the name *dismissed*, so renaming the label changed no stored data and no API, and a task marked
+as complete is a dismissal like any other: it lists on the same page, and restores the same way.
 
 Per user, per block, in `core_favourites` (component `local_edguidance`, item type `dismissed`,
 item id = the row id) in the user's own context - the same store `mod_ednote` used, for the same
@@ -405,7 +453,9 @@ Nothing in core deletes this plugin's rows or anyone's dismissals, so:
 backup and restore, import, course copy, *Duplicate*, the recycle bin and `mod_edpreset`'s copies,
 and a section's blocks to its `section.xml`, which covers the same for sections (duplicating a
 section is not a backup; see *Guidance in section summaries*). `embedkey` and `presetslot` are
-carried verbatim - the token in the restored text matches the same key.
+carried verbatim - the token in the restored text matches the same key - and so are `category` and
+`heading`. A backup from before those existed restores as a note with no heading, which is what the
+table's defaults make it.
 
 A section may be merged into one that already exists, so its restored summary decides what is
 restored: a block whose key is not in the summary (the existing section kept its own) is skipped; a
@@ -435,7 +485,8 @@ vendor/bin/phpunit --testsuite tiny_edguidance_testsuite
 php admin/tool/behat/cli/run.php --tags=@local_edguidance
 ```
 
-Behat covers card guidance with the description shown and hidden, in Boost and in Snap; dismiss,
+Behat covers card guidance with the description shown and hidden, in Boost and in Snap; categories
+and headings, and *Mark as complete* for a task; setting and changing them in the editor; dismiss,
 undo, and restore from the dismissed guidance page; per-teacher dismissal; a preset updating live;
 book chapters and lesson pages; section summaries, in Boost and in Snap; adding guidance with the
 editor button, in a chapter and a section summary; the editor's preview, as it is added and edited,

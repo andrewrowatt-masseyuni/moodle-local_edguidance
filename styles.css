@@ -16,8 +16,47 @@ div.edguidance-embed[data-edguidance] {
 }
 
 /*
- * "Quiet strip" treatment, as mod_ednote had: no fill of its own beyond a faint tint, and a teal rule
- * down its left edge, so it reads as a low-weight teacher aside rather than competing with the
+ * Each category's palette: the rule down the left edge and the icon (accent), the faint fill (tint),
+ * the category name and heading (ink), the guidance itself (text), and the buttons (action). Text and
+ * buttons clear 4.5:1 against the fill. Note, the default, is also what the form's preset preview
+ * wears, since that is what a new block becomes unless the teacher says otherwise.
+ */
+.edguidance,
+.edguidance-preview {
+    --edguidance-accent: #e0a800;
+    --edguidance-tint: #ffc1071f;
+    --edguidance-ink: #7a5b00;
+    --edguidance-text: #574a26;
+    --edguidance-action: #7a5b00;
+}
+
+.edguidance-recommendation {
+    --edguidance-accent: #3b82c4;
+    --edguidance-tint: #3b82c41a;
+    --edguidance-ink: #164f8a;
+    --edguidance-text: #2c4660;
+    --edguidance-action: #164f8a;
+}
+
+.edguidance-task {
+    --edguidance-accent: #d0342c;
+    --edguidance-tint: #d0342c14;
+    --edguidance-ink: #9b1c1c;
+    --edguidance-text: #5a2a2a;
+    --edguidance-action: #9b1c1c;
+}
+
+.edguidance-optionaltask {
+    --edguidance-accent: #e8740c;
+    --edguidance-tint: #e8740c1a;
+    --edguidance-ink: #9a4a00;
+    --edguidance-text: #5c3a1a;
+    --edguidance-action: #9a4a00;
+}
+
+/*
+ * "Quiet strip" treatment, as mod_ednote had: no fill of its own beyond a faint tint, and a coloured
+ * rule down its left edge, so it reads as a low-weight teacher aside rather than competing with the
  * content around it.
  */
 .edguidance {
@@ -27,10 +66,10 @@ div.edguidance-embed[data-edguidance] {
 
 .edguidance-card {
     padding: 0.25rem 0.5rem 0.25rem 0.5rem;
-    border-left: 3px solid #2f8a9b;
-    color: #40626a;
+    border-left: 3px solid var(--edguidance-accent);
+    color: var(--edguidance-text);
     font-weight: 400;
-    background-color: #2f8a9b0f;
+    background-color: var(--edguidance-tint);
 }
 
 .edguidance-header {
@@ -41,6 +80,7 @@ div.edguidance-embed[data-edguidance] {
     margin-bottom: 0.5rem;
 }
 
+/* The category's name. Named as well as coloured, so the category does not rest on colour alone. */
 .edguidance-title {
     display: inline-flex;
     align-items: flex-end;
@@ -48,22 +88,31 @@ div.edguidance-embed[data-edguidance] {
     font-weight: 500;
     font-size: 0.78rem;
     text-transform: uppercase;
-    color: #12545f;
+    color: var(--edguidance-ink);
 }
 
 .edguidance-title::before {
-    content: '\f0eb';
+    content: '\f249';
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     font-size: 0.85rem;
     letter-spacing: normal;
-    color: #2f8a9b;
+    color: var(--edguidance-accent);
+}
+
+.edguidance-recommendation .edguidance-title::before {
+    content: '\f0eb';
+}
+
+.edguidance-task .edguidance-title::before,
+.edguidance-optionaltask .edguidance-title::before {
+    content: '\f0ae';
 }
 
 /* "Only teachers see this" - reassures the teacher the aside is not on the student view. */
 .edguidance-scope {
     font-size: 0.75rem;
-    color: #8ba1a7;
+    color: #626d71;
 }
 
 .edguidance .edguidance-dismiss {
@@ -71,7 +120,7 @@ div.edguidance-embed[data-edguidance] {
     padding: 0;
     font-size: 0.8rem;
     font-weight: 500;
-    color: #0f7b8f;
+    color: var(--edguidance-action);
 }
 
 /* The tick, sized to the label rather than to the theme's 16px icon box. */
@@ -82,10 +131,19 @@ div.edguidance-embed[data-edguidance] {
     font-size: inherit;
 }
 
+/* The optional heading: an h5, sized to the aside rather than to the page's own h5. */
+.edguidance .edguidance-heading {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--edguidance-ink);
+}
+
 .edguidance-body {
     font-size: 0.875rem;
     line-height: 1.55;
-    color: #40626a;
+    color: var(--edguidance-text);
     font-weight: 300;
 }
 
@@ -101,7 +159,7 @@ div.edguidance-embed[data-edguidance] {
 
 /* The rule mutes once the block has been dismissed, and before the page is next loaded. */
 .edguidance.edguidance-is-dismissed .edguidance-card {
-    border-left-color: #b6c9cd;
+    border-left-color: #c4c9cc;
 }
 
 /*
@@ -130,14 +188,14 @@ div.edguidance-embed[data-edguidance] {
 .edguidance .edguidance-undo {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #0f7b8f;
+    color: var(--edguidance-action);
 }
 
 /* The preview of a preset in the embed form, dressed as the block it will become. */
 .edguidance-preview {
     padding: 0.375rem 0.75rem;
-    border-left: 3px solid #2f8a9b;
-    background-color: #2f8a9b0f;
+    border-left: 3px solid var(--edguidance-accent);
+    background-color: var(--edguidance-tint);
 }
 
 /*
@@ -172,5 +230,5 @@ div.edguidance-embed[data-edguidance] {
 
 /* The dismissed guidance page (dismissed.php): a short excerpt of each block, beside its restore button. */
 .edguidance-dismissedlist .edguidance-excerpt {
-    color: #40626a;
+    color: #3f4a4d;
 }
