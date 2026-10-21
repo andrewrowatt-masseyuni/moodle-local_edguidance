@@ -125,7 +125,7 @@ class block implements \renderable, \templatable {
 
         $block = new self($row, $resolved);
 
-        return $OUTPUT->render_from_template('local_edguidance/block', $block->export_for_template($OUTPUT));
+        return $OUTPUT->render($block);
     }
 
     /**
@@ -169,6 +169,6 @@ class block implements \renderable, \templatable {
 
         $block = new self($row, $resolved, true, $interactive, dismissed::is_dismissed((int)$row->id));
 
-        return $OUTPUT->render_from_template('local_edguidance/block', $block->export_for_template($OUTPUT));
+        return $OUTPUT->render($block);
     }
 }

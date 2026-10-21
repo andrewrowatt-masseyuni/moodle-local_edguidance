@@ -95,6 +95,10 @@ host, **from the plugin directory**: `grunt --max-lint-warnings=0 amd` (built fi
   sharing a block; restore holds it off while a section step runs.
 * **`SITEID` is a string.** Compare it as `(int)SITEID`; a strict comparison with an int never
   matches.
+* **Never pass `$OUTPUT` as an argument; call it.** In a web service it is a `bootstrap_renderer`
+  until something calls a method on it, and that is not a `renderer_base`. Render with
+  `$OUTPUT->render($renderable)`. Dev never shows the bug, because the emoticon filter calls
+  `$OUTPUT` while formatting the text; a site with it off fails.
 * Reset `guidance`, `dismissed` and `card_injector` static caches in `setUp()`.
 * Bump `version.php` with every `db/` change, paired with a savepoint in `db/upgrade.php`.
 * Lang keys are kept in alphabetical order.

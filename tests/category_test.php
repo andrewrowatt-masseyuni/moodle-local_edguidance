@@ -192,4 +192,31 @@ final class category_test extends \advanced_testcase {
         $this->assertStringContainsString('<span class="sr-only">Optional task: </span>If there is time</h5>', $html);
         $this->assertStringContainsString(get_string('markascomplete', 'local_edguidance'), $html);
     }
+
+    /**
+     * A block renders before anything has used $OUTPUT, as in a web service call on a site without
+     * the emoticon filter, which otherwise sets it up while formatting the text. Until then $OUTPUT
+     * is a bootstrap_renderer, which can be called but not passed as a renderer.
+     */
+    public function test_renders_before_output_is_set_up(): void {
+        $this->resetAfterTest();
+        foreach (array_keys(filter_get_global_states()) as $filter) {
+            filter_set_global_state($filter, TEXTFILTER_DISABLED);
+        }
+        $row = $this->make_block();
+
+        // As a web service call starts, once validate_context() has reset the theme.
+        $setup = function () use ($row): void {
+            global $OUTPUT, $PAGE;
+            $PAGE->reset_theme_and_output();
+            $PAGE->set_context(guidance::context_for($row));
+            $OUTPUT = new \core\output\bootstrap_renderer();
+        };
+
+        $setup();
+        $this->assertStringContainsString('edguidance-card', block::render_row($row));
+
+        $setup();
+        $this->assertStringContainsString('edguidance-card', block::render_preview($row));
+    }
 }
