@@ -129,6 +129,30 @@ final class dismissed_page_test extends \advanced_testcase {
     }
 
     /**
+     * Names are escaped once, by the template: "Q&A" reads as "Q&A", not "Q&amp;A".
+     */
+    public function test_names_are_escaped_once(): void {
+        global $PAGE;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id, 'name' => 'Q&A "live"']);
+        $row = $this->generator()->create_block(['cmid' => $page->cmid]);
+        $this->setUser($this->getDataGenerator()->create_and_enrol($course, 'teacher'));
+        dismissed::set((int)$row->id, true);
+
+        $data = $this->export($course);
+
+        $this->assertSame('Q&A "live"', $data['items'][0]['location']);
+        $this->assertSame('Restore teacher guidance in Q&A "live"', $data['items'][0]['restorelabel']);
+
+        $html = $PAGE->get_renderer('core')->render_from_template('local_edguidance/dismissed_page', $data);
+        $this->assertStringContainsString('>Q&amp;A &quot;live&quot;</a>', $html);
+        $this->assertStringContainsString('aria-label="Restore teacher guidance in Q&amp;A &quot;live&quot;"', $html);
+        $this->assertStringNotContainsString('&amp;amp;', $html);
+    }
+
+    /**
      * Nothing dismissed: the page says so, and the navigation does not offer it.
      */
     public function test_nothing_dismissed(): void {

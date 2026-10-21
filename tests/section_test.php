@@ -287,21 +287,33 @@ final class section_test extends \advanced_testcase {
     }
 
     /**
-     * Deleting a course's contents deletes its sections' blocks, but not its drafts or other courses'.
+     * Deleting a course's contents deletes its sections' and its activities' blocks, and everyone's
+     * dismissals of them, but not its drafts or other courses' blocks.
+     *
+     * remove_course_contents() deletes modules without the per-module callbacks, so the activities'
+     * blocks would otherwise be left behind.
      */
-    public function test_deleting_course_contents_cleans_up_sections(): void {
+    public function test_deleting_course_contents_cleans_up(): void {
         global $DB;
 
         $this->resetAfterTest();
         $this->setAdminUser();
         [$course, , $row] = $this->make_section();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $inpage = $this->generator()->create_block(['cmid' => $page->cmid]);
         $draft = $this->generator()->create_block(['courseid' => $course->id]);
-        [, , $other] = $this->make_section();
+        [$othercourse, , $other] = $this->make_section();
+        $otherpage = $this->getDataGenerator()->create_module('page', ['course' => $othercourse->id]);
+        $elsewhere = $this->generator()->create_block(['cmid' => $otherpage->cmid]);
+        dismissed::set((int)$inpage->id, true);
 
         remove_course_contents($course->id, false);
 
         $this->assertFalse($DB->record_exists('local_edguidance', ['id' => $row->id]));
+        $this->assertFalse($DB->record_exists('local_edguidance', ['id' => $inpage->id]));
+        $this->assertFalse($DB->record_exists('favourite', ['component' => dismissed::COMPONENT, 'itemid' => $inpage->id]));
         $this->assertTrue($DB->record_exists('local_edguidance', ['id' => $draft->id]));
         $this->assertTrue($DB->record_exists('local_edguidance', ['id' => $other->id]));
+        $this->assertTrue($DB->record_exists('local_edguidance', ['id' => $elsewhere->id]));
     }
 }

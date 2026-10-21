@@ -227,6 +227,9 @@ Files embedded in a block's own text live in filearea `guidance`, itemid = the r
 activity's context - the course's, for a section's block or a draft - served by
 `local_edguidance_pluginfile()` to holders of `view` only (`manage`, for a draft).
 
+Saving a block (`api::save_embed()`) is one transaction, so a failure part way - saving the editor's
+files, or the row - cannot leave a new, empty block behind under a key that no token holds.
+
 ### Resolving the text
 
 `guidance::resolve()` decides what a block shows, on every request:
@@ -391,7 +394,9 @@ module's own `_cm_info_view()`. This works because:
   `local_edguidance_override_webservice_execution()` before the web services that redraw a card
   (`core_get_fragment` for `core_courseformat` / `theme_snap`, `core_course_get_module`,
   `core_course_edit_module`). That callback always returns `false`, so core then runs the real
-  function against the primed modinfo;
+  function against the primed modinfo. It also catches anything priming throws, reporting it with
+  `debugging()`: it runs inside core's handling of someone else's call, and guidance that fails to
+  render must cost that call its fallback cards, not the call itself;
 * it reads the existing afterlink first, which runs the module's own `_cm_info_view()` so that it
   cannot overwrite ours later, and appends.
 
@@ -589,9 +594,11 @@ Nothing in core deletes this plugin's rows or anyone's dismissals, so:
   is backed up with its guidance;
 * `\core_course\hook\before_course_deleted` does the same for a course, because course deletion
   removes modules without the per-module callbacks;
-* the `course_section_deleted` event deletes a section's blocks, and `course_content_deleted` every
-  section's in a course, because `remove_course_contents()` (a restore that deletes the existing
-  content first, say) deletes sections straight from the table.
+* the `course_section_deleted` event deletes a section's blocks;
+* the `course_content_deleted` event deletes every section's and every activity's blocks in a course,
+  and their favourites, because `remove_course_contents()` (a restore that deletes the existing
+  content first, say) deletes sections straight from the table and modules without the per-module
+  callbacks. Drafts are left for `purge_drafts`.
 
 ### Backup and restore
 
@@ -646,6 +653,9 @@ between teachers and kept over a reload, none of it shown to students, a preset'
 guidance turning green once all are ticked; *Add task* in the guidance editor; and an editing teacher
 in the editor - no way to add, edit or open guidance, but ticking, marking as read and restoring
 there, saved whether or not the text is.
+
+The Snap scenarios skip themselves where `theme_snap` is not installed (`Given the "theme_snap"
+plugin is installed`), as in CI, which installs only the three guidance plugins.
 
 Four things to know when adding Behat coverage:
 

@@ -91,7 +91,7 @@ class restore_local_edguidance_plugin extends restore_local_plugin {
         foreach ($this->blocks as $oldid => $newid) {
             $this->set_mapping('local_edguidance_block', $oldid, $newid, true);
         }
-        $this->add_related_files('local_edguidance', 'guidance', 'local_edguidance_block');
+        $this->add_related_files('local_edguidance', \local_edguidance\api::FILEAREA, 'local_edguidance_block');
     }
 
     /**
@@ -181,6 +181,6 @@ class restore_local_edguidance_plugin extends restore_local_plugin {
         foreach ($this->sectionblocks as $oldid => $newid) {
             $this->set_mapping('local_edguidance_sectionblock', $oldid, $newid, true);
         }
-        $this->add_related_files('local_edguidance', 'guidance', 'local_edguidance_sectionblock');
+        $this->add_related_files('local_edguidance', \local_edguidance\api::FILEAREA, 'local_edguidance_sectionblock');
     }
 }

@@ -183,52 +183,62 @@ class api {
 
         $row = ($key !== null && $key !== '') ? self::get_embed($context, $key, $sectionid) : null;
         $created = !$row;
-        if (!$row) {
-            $row = (object)[
-                'courseid' => $courseid,
-                'cmid' => $cmid,
-                'sectionid' => $sectionid,
-                'embedkey' => token::new_key(),
-                'introorder' => 0,
-                'presetslot' => 0,
-                'category' => category::NOTE,
-                'heading' => null,
-                'guidance' => '',
-                'guidanceformat' => FORMAT_HTML,
-                'timecreated' => $now,
-                'timemodified' => $now,
-            ];
-            $row->id = $DB->insert_record('local_edguidance', $row);
-        }
 
-        if ($preset) {
-            // The snapshot is only ever shown if the slot is later emptied; the live text comes
-            // from the preset on every render.
-            $row->presetslot = $presetslot;
-            $row->guidance = $preset->guidance;
-            $row->guidanceformat = FORMAT_HTML;
-            // A preset block has no files of its own. Drop any left over from its own text.
-            get_file_storage()->delete_area_files($context->id, 'local_edguidance', self::FILEAREA, $row->id);
-        } else {
-            $data = file_postupdate_standard_editor(
-                (object)['guidance_editor' => $editor ?? ['text' => '', 'format' => FORMAT_HTML, 'itemid' => 0]],
-                'guidance',
-                self::editor_options($context),
-                $context,
-                'local_edguidance',
-                self::FILEAREA,
-                $row->id
-            );
-            $row->presetslot = 0;
-            $row->guidance = $data->guidance;
-            $row->guidanceformat = $data->guidanceformat;
-        }
+        // One transaction, so that a failure part way - saving the editor's files, or the row itself
+        // - cannot leave behind a new block with no text, under a key that no token holds.
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            if (!$row) {
+                $row = (object)[
+                    'courseid' => $courseid,
+                    'cmid' => $cmid,
+                    'sectionid' => $sectionid,
+                    'embedkey' => token::new_key(),
+                    'introorder' => 0,
+                    'presetslot' => 0,
+                    'category' => category::NOTE,
+                    'heading' => null,
+                    'guidance' => '',
+                    'guidanceformat' => FORMAT_HTML,
+                    'timecreated' => $now,
+                    'timemodified' => $now,
+                ];
+                $row->id = $DB->insert_record('local_edguidance', $row);
+            }
 
-        $heading = trim($heading);
-        $row->category = $category;
-        $row->heading = $heading !== '' ? $heading : null;
-        $row->timemodified = $now;
-        $DB->update_record('local_edguidance', $row);
+            if ($preset) {
+                // The snapshot is only ever shown if the slot is later emptied; the live text comes
+                // from the preset on every render.
+                $row->presetslot = $presetslot;
+                $row->guidance = $preset->guidance;
+                $row->guidanceformat = FORMAT_HTML;
+                // A preset block has no files of its own. Drop any left over from its own text.
+                get_file_storage()->delete_area_files($context->id, 'local_edguidance', self::FILEAREA, $row->id);
+            } else {
+                $data = file_postupdate_standard_editor(
+                    (object)['guidance_editor' => $editor ?? ['text' => '', 'format' => FORMAT_HTML, 'itemid' => 0]],
+                    'guidance',
+                    self::editor_options($context),
+                    $context,
+                    'local_edguidance',
+                    self::FILEAREA,
+                    $row->id
+                );
+                $row->presetslot = 0;
+                $row->guidance = $data->guidance;
+                $row->guidanceformat = $data->guidanceformat;
+            }
+
+            $heading = trim($heading);
+            $row->category = $category;
+            $row->heading = $heading !== '' ? $heading : null;
+            $row->timemodified = $now;
+            $DB->update_record('local_edguidance', $row);
+
+            $transaction->allow_commit();
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+        }
         guidance::reset_cache();
 
         $event = $created ? event\guidance_created::class : event\guidance_updated::class;
@@ -549,6 +559,33 @@ class api {
             }
         }
 
+        $DB->delete_records_select('local_edguidance', $select, $params);
+        guidance::reset_cache();
+    }
+
+    /**
+     * Delete every block in a course's sections and activities, leaving its drafts.
+     *
+     * Needed when a course's contents are deleted (a restore that deletes the existing content
+     * first, say): remove_course_contents() deletes sections straight from the table, and modules
+     * without the per-module callbacks that delete_for_cm() hangs off. The activities' files went
+     * with their contexts. Drafts belong to neither, so they are left for purge_drafts().
+     *
+     * @param int $courseid The course.
+     */
+    public static function delete_for_course_content(int $courseid): void {
+        global $DB;
+
+        self::delete_for_sections($courseid);
+
+        $select = 'courseid = :courseid AND cmid > 0';
+        $params = ['courseid' => $courseid];
+        $ids = $DB->get_fieldset_select('local_edguidance', 'id', $select, $params);
+        if (!$ids) {
+            return;
+        }
+
+        dismissed::purge($ids);
         $DB->delete_records_select('local_edguidance', $select, $params);
         guidance::reset_cache();
     }

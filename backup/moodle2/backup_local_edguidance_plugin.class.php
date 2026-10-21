@@ -89,7 +89,7 @@ class backup_local_edguidance_plugin extends backup_local_plugin {
         $blocks->add_child($block);
 
         $block->set_source_table('local_edguidance', $source);
-        $block->annotate_files('local_edguidance', 'guidance', 'id');
+        $block->annotate_files('local_edguidance', \local_edguidance\api::FILEAREA, 'id');
 
         return $plugin;
     }

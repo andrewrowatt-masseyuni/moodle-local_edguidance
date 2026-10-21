@@ -21,7 +21,7 @@ use core\event\course_section_deleted;
 use core\event\course_section_updated;
 
 /**
- * Event observers for teacher guidance in section summaries.
+ * Event observers for teacher guidance in section summaries, and in a course's contents as a whole.
  *
  * Events rather than hooks because core 4.5 has no hooks for sections: duplicating, editing and
  * deleting one all go through core code that only fires these events.
@@ -52,11 +52,11 @@ class observer {
     }
 
     /**
-     * A course's contents were deleted, sections and all, straight from the tables.
+     * A course's contents were deleted, sections and activities alike, straight from the tables.
      *
      * @param course_content_deleted $event The event.
      */
     public static function course_content_deleted(course_content_deleted $event): void {
-        api::delete_for_sections((int)$event->objectid);
+        api::delete_for_course_content((int)$event->objectid);
     }
 }

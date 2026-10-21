@@ -162,7 +162,7 @@ class guidance {
                 'pluginfile.php',
                 $context->id,
                 'local_edguidance',
-                'guidance',
+                api::FILEAREA,
                 (int)$row->id
             );
         }

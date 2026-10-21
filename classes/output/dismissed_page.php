@@ -83,7 +83,8 @@ class dismissed_page implements \renderable, \templatable {
      * The course's own view capability is the caller's to check.
      *
      * @param int $courseid The course.
-     * @return array<int, array{row: \stdClass, name: string, url: \moodle_url}> In course order.
+     * @return array<int, array{row: \stdClass, name: string, url: \moodle_url}> In course order, each
+     *     named in plain text.
      */
     protected static function find(int $courseid): array {
         global $CFG;
@@ -108,7 +109,7 @@ class dismissed_page implements \renderable, \templatable {
                 if (isset($ids[(int)$row->id])) {
                     $found[] = [
                         'row' => $row,
-                        'name' => get_section_name($courseid, $section),
+                        'name' => self::plain(get_section_name($courseid, $section)),
                         'url' => course_get_url($courseid, $section->section, ['navigation' => true]),
                     ];
                 }
@@ -140,7 +141,22 @@ class dismissed_page implements \renderable, \templatable {
         // A label has no page of its own, so its section stands in.
         $url = $cm->get_url() ?? course_get_url((int)$cm->course, $cm->sectionnum, ['navigation' => true]);
 
-        return array_map(fn($row) => ['row' => $row, 'name' => $cm->get_formatted_name(), 'url' => $url], array_values($rows));
+        $name = self::plain($cm->get_formatted_name());
+
+        return array_map(fn($row) => ['row' => $row, 'name' => $name, 'url' => $url], array_values($rows));
+    }
+
+    /**
+     * A formatted name as plain text, for the template to escape once.
+     *
+     * get_section_name() and cm_info::get_formatted_name() return HTML. Escaped again by the
+     * template, an activity called "Q&A" would read "Q&amp;A".
+     *
+     * @param string $html The formatted name.
+     * @return string
+     */
+    protected static function plain(string $html): string {
+        return html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     /**

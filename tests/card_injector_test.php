@@ -220,7 +220,8 @@ final class card_injector_test extends \advanced_testcase {
         card_injector::prime((int)$course->id);
 
         $this->assertMatchesRegularExpression(
-            '~<div class="no-overflow">\s*<div class="edguidance[^"]*" data-region="edguidance" data-guidanceid="' . $row->id . '"~',
+            '~<div class="no-overflow">\s*<div class="edguidance[^"]*" data-region="edguidance" '
+                . 'data-guidanceid="' . $row->id . '"~',
             (string)get_fast_modinfo((int)$course->id)->get_cm($cmid)->afterlink
         );
     }

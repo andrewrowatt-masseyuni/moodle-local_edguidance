@@ -175,7 +175,14 @@ class card_injector {
             return;
         }
 
-        self::prime((int)$coursecontext->instanceid);
+        // This runs inside core's handling of someone else's call. Guidance that fails to render
+        // must cost that call its fallback cards, not the call itself.
+        try {
+            self::prime((int)$coursecontext->instanceid);
+        } catch (\Throwable $e) {
+            debugging('Could not put teacher guidance into the cards of course ' . $coursecontext->instanceid . ': ' .
+                $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**

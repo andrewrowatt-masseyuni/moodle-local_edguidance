@@ -122,6 +122,41 @@ final class api_test extends \advanced_testcase {
     }
 
     /**
+     * A save that fails part way leaves nothing behind: no block made before the failure, and no event.
+     */
+    public function test_a_failed_save_leaves_no_block(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        // Otherwise the test runs in a transaction of its own, and save_embed()'s rolls back only with it.
+        $this->preventResetByRollback();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $page = $this->getDataGenerator()->create_module('page', ['course' => $course->id]);
+        $sink = $this->redirectEvents();
+
+        $caught = null;
+        try {
+            // Too long for its column, so the update after the insert fails.
+            api::save_embed(
+                \context_module::instance($page->cmid),
+                null,
+                0,
+                $this->editor('<p>Lost.</p>'),
+                0,
+                category::NOTE,
+                str_repeat('x', 300)
+            );
+        } catch (\dml_write_exception $e) {
+            $caught = $e;
+        }
+
+        $this->assertInstanceOf(\dml_write_exception::class, $caught, 'A heading too long for its column was saved.');
+        $this->assertSame(0, $DB->count_records('local_edguidance'));
+        $this->assertSame([], $sink->get_events());
+    }
+
+    /**
      * A key belonging to another activity cannot be used to edit that activity's block.
      */
     public function test_a_foreign_key_gets_a_new_block(): void {
