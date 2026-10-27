@@ -265,4 +265,16 @@ final class card_injector_test extends \advanced_testcase {
 
         $this->assertSame(0, $DB->perf_get_reads() - $before);
     }
+
+    /**
+     * A function whose name is not a string is ignored rather than failing the call.
+     *
+     * Core's test_external_function_throwable fixture sets the name to an object.
+     */
+    public function test_a_function_without_a_string_name_is_ignored(): void {
+        $this->resetAfterTest();
+
+        $this->assertFalse(local_edguidance_override_webservice_execution((object)['name' => new \stdClass()], []));
+        $this->assertFalse(local_edguidance_override_webservice_execution(new \stdClass(), []));
+    }
 }

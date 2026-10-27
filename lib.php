@@ -77,7 +77,12 @@ function local_edguidance_pre_course_module_delete($cm) {
  * @return false
  */
 function local_edguidance_override_webservice_execution($externalfunctioninfo, $params) {
-    card_injector::prime_for_webservice((string)$externalfunctioninfo->name, (array)$params);
+    // Not every caller passes a string: core's own test fixture, test_external_function_throwable, sets
+    // the name to an object. Casting that throws, and costs the call its real result.
+    $function = $externalfunctioninfo->name ?? null;
+    if (is_string($function)) {
+        card_injector::prime_for_webservice($function, (array)$params);
+    }
 
     return false;
 }

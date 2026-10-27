@@ -400,7 +400,10 @@ module's own `_cm_info_view()`. This works because:
   `core_course_edit_module`). That callback always returns `false`, so core then runs the real
   function against the primed modinfo. It also catches anything priming throws, reporting it with
   `debugging()`: it runs inside core's handling of someone else's call, and guidance that fails to
-  render must cost that call its fallback cards, not the call itself;
+  render must cost that call its fallback cards, not the call itself. For the same reason it ignores
+  a function whose name is not a string rather than casting it: core's
+  `test_external_function_throwable` fixture passes an object, and the cast failed
+  `external_api_test::test_call_external_function`;
 * it reads the existing afterlink first, which runs the module's own `_cm_info_view()` so that it
   cannot overwrite ours later, and appends.
 
