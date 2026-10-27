@@ -5,7 +5,8 @@ Feature: Teacher guidance in section summaries
   I need to see guidance in its section summary, where students cannot
 
   Background:
-    Given the following "courses" exist:
+    Given the "edguidance" filter is "on"
+    And the following "courses" exist:
       | fullname | shortname | format | numsections |
       | Course 1 | C1        | topics | 2           |
     And the following "users" exist:

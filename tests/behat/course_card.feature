@@ -5,7 +5,8 @@ Feature: Teacher guidance in activity cards
   I need to see its guidance in the activity card, and be able to put it out of the way
 
   Background:
-    Given the following "courses" exist:
+    Given the "edguidance" filter is "on"
+    And the following "courses" exist:
       | fullname | shortname | format |
       | Course 1 | C1        | topics |
     And the following "users" exist:

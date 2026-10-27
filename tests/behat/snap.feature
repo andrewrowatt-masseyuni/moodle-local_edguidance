@@ -7,6 +7,7 @@ Feature: Teacher guidance in Snap activity cards
   # Section 0 because Snap opens a course on its first section and shows no other until asked.
   Background:
     Given the "theme_snap" plugin is installed
+    And the "edguidance" filter is "on"
     And the following config values are set as admin:
       | theme | snap |
     And the following "courses" exist:

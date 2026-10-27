@@ -60,9 +60,13 @@ internals a later release could move.
 
 2. Visit **Site administration > Notifications**, or run `php admin/cli/upgrade.php`.
 
-The filter switches itself on site-wide when it is installed, at the end of the filter order. Without
-it nobody sees any guidance, so check it is still **On** under *Site administration > Plugins >
-Filters > Manage filters* if guidance ever disappears everywhere.
+3. Switch the *Teacher guidance* filter **On** under *Site administration > Plugins > Filters >
+   Manage filters*, and leave it at the end of the filter order, where switching it on puts it.
+
+Without the filter nobody sees any guidance, so check it is still **On** if guidance ever disappears
+everywhere. It installs disabled, as every filter does, rather than switching itself on: a filter
+that did would change the active filters of every PHPUnit and Behat site, and with them the output
+of core tests that assume core's own.
 
 Presets are optional: *Site administration > Plugins > Local plugins > Teacher guidance*.
 
@@ -657,8 +661,12 @@ there, saved whether or not the text is.
 The Snap scenarios skip themselves where `theme_snap` is not installed (`Given the "theme_snap"
 plugin is installed`), as in CI, which installs only the three guidance plugins.
 
-Four things to know when adding Behat coverage:
+Five things to know when adding Behat coverage:
 
+* The filter is disabled on a fresh test site, as on a fresh install. Start each Background with
+  *Given the "edguidance" filter is "on"* (after the Snap check, in `snap.feature`), or no guidance
+  shows - and every *should not see* passes for the wrong reason. PHPUnit tests that go through
+  `format_text()` switch it on the same way.
 * `mod_book`'s generator makes chapters in `FORMAT_MOODLE`, which TinyMCE does not edit - Moodle
   quietly picks another editor and there is no button. Give chapters `contentformat` 1.
 * The `Insert > ...` menu step cannot reach a third menu level. Click the toolbar button and pick

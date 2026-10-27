@@ -5,7 +5,8 @@ Feature: Teacher guidance embedded in book chapters and lesson pages
   I need to see guidance embedded in its chapters and pages, and students must not
 
   Background:
-    Given the following "courses" exist:
+    Given the "edguidance" filter is "on"
+    And the following "courses" exist:
       | fullname | shortname |
       | Course 1 | C1        |
     And the following "users" exist:

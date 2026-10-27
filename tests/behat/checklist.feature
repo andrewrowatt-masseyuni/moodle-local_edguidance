@@ -5,7 +5,8 @@ Feature: Checklists in teacher guidance
   I need to tick off the items on a guidance checklist, and see what my colleagues have ticked
 
   Background:
-    Given the following "courses" exist:
+    Given the "edguidance" filter is "on"
+    And the following "courses" exist:
       | fullname | shortname | format |
       | Course 1 | C1        | topics |
     And the following "users" exist:

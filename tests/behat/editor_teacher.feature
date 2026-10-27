@@ -5,7 +5,8 @@ Feature: Working through teacher guidance in the editor
   I need to tick its checklists, and mark it as read or complete, in the editor, but not change it
 
   Background:
-    Given the following "courses" exist:
+    Given the "edguidance" filter is "on"
+    And the following "courses" exist:
       | fullname | shortname |
       | Course 1 | C1        |
     And the following "users" exist:
